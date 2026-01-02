@@ -36,6 +36,8 @@ uv pip install -e .
 pip install -e .
 ```
 
+> **Note:** This project uses `uv` for all Python execution, testing, and package management. All examples in this documentation use `uv` commands.
+
 ## Quick Start
 
 ### Set up your GitHub token

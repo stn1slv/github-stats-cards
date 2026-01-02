@@ -42,61 +42,63 @@ Thank you for your interest in contributing! This document provides guidelines a
 5. **Verify installation**
 
    ```bash
-   github-stats-card --help
-   pytest
+   uv run github-stats-card --help
+   uv run pytest
    ```
 
 ## Development Workflow
 
 ### Running Tests
 
+This project uses `uv` for all Python execution and testing:
+
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=github_stats_card
+uv run pytest --cov=src
 
 # Run specific test file
-pytest tests/test_rank.py
+uv run pytest tests/test_rank.py
 
 # Run with verbose output
-pytest -v
+uv run pytest -v
 ```
 
 ### Code Formatting
 
-We use `black` for code formatting and `ruff` for linting:
+We use `black` for code formatting and `ruff` for linting (via `uv`):
 
 ```bash
 # Format code
-black github_stats_card tests
+uv run black src tests
 
 # Check formatting
-black --check github_stats_card tests
+uv run black --check src tests
 
 # Lint code
-ruff check github_stats_card tests
+uv run ruff check src tests
 
 # Auto-fix linting issues
-ruff check --fix github_stats_card tests
+uv run ruff check --fix src tests
 ```
 
 ### Type Checking
 
 ```bash
 # Run mypy
-mypy github_stats_card
+uv run mypy src
 ```
 
 ### Manual Testing
 
 ```bash
 # Test basic functionality
-github-stats-card -u octocat -o test.svg
+uv run github-stats-card -u octocat -o test.svg
 
 # Test with different themes
-github-stats-card -u octocat -o test.svg --theme dark --show-icons
+uv run github-stats-card -u octocat -o test.svg --theme dark --show-icons
 ```
 
 ## Project Structure
@@ -145,7 +147,7 @@ github-stats-card/
 3. Test it:
 
    ```bash
-   github-stats-card -u octocat -o test.svg --theme my_theme
+   uv run github-stats-card -u octocat -o test.svg --theme my_theme
    ```
 
 ### Adding a New Icon
