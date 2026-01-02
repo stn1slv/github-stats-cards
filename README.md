@@ -38,6 +38,29 @@ pip install -e .
 
 > **Note:** This project uses `uv` for all Python execution, testing, and package management. All examples in this documentation use `uv` commands.
 
+### Running Without Installation
+
+You can run the application directly without installing it using `uv run`:
+
+```bash
+# Run as a Python module
+uv run python -m src.cli -u your-username -o stats.svg
+
+# Or using the shorter form
+uv run python -m src -u your-username -o stats.svg
+```
+
+**Important:** Don't forget to set your GitHub token:
+```bash
+export GITHUB_TOKEN=ghp_your_token_here
+uv run python -m src.cli -u your-username -o stats.svg
+```
+
+Or pass it directly:
+```bash
+uv run python -m src.cli -u your-username -o stats.svg --token ghp_your_token_here
+```
+
 ## Quick Start
 
 ### Set up your GitHub token
