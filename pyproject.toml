@@ -24,7 +24,7 @@ dev = [
 ]
 
 [project.scripts]
-github-stats-card = "src.cli:main"
+github-stats-card = "src.cli:cli"
 
 [build-system]
 requires = ["hatchling"]

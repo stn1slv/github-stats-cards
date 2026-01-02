@@ -7,10 +7,18 @@ from typing import Union
 import click
 
 from .fetcher import FetchError, fetch_stats
+from .langs_fetcher import LanguageFetchError, fetch_top_languages
+from .langs_card import render_top_languages
 from .stats_card import render_stats_card
 
 
-@click.command()
+@click.group()
+def cli():
+    """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
+    pass
+
+
+@cli.command(name="stats")
 @click.option(
     "--username",
     "-u",
@@ -153,7 +161,7 @@ from .stats_card import render_stats_card
     default=True,
     help="Use bold text (default: yes)",
 )
-def main(
+def stats(
     username: str,
     token: str,
     output: str,
@@ -269,5 +277,229 @@ def main(
         sys.exit(1)
 
 
+@cli.command(name="top-langs")
+@click.option(
+    "--username",
+    "-u",
+    required=True,
+    help="GitHub username",
+)
+@click.option(
+    "--token",
+    "-t",
+    envvar="GITHUB_TOKEN",
+    required=True,
+    help="GitHub Personal Access Token (or set GITHUB_TOKEN env var)",
+)
+@click.option(
+    "--output",
+    "-o",
+    required=True,
+    type=click.Path(),
+    help="Output SVG file path",
+)
+@click.option(
+    "--theme",
+    default="default",
+    help="Theme name (default, dark, radical, etc.)",
+)
+@click.option(
+    "--hide-border",
+    is_flag=True,
+    help="Hide card border",
+)
+@click.option(
+    "--hide-title",
+    is_flag=True,
+    help="Hide card title",
+)
+@click.option(
+    "--hide-progress",
+    is_flag=True,
+    help="Hide progress bars",
+)
+@click.option(
+    "--layout",
+    type=click.Choice(["normal", "compact", "donut", "donut-vertical", "pie"]),
+    default="normal",
+    help="Card layout style",
+)
+@click.option(
+    "--langs-count",
+    type=int,
+    help="Number of languages to show (1-20)",
+)
+@click.option(
+    "--hide",
+    default="",
+    help="Comma-separated languages to hide (e.g., HTML,CSS)",
+)
+@click.option(
+    "--exclude-repo",
+    default="",
+    help="Comma-separated repos to exclude",
+)
+@click.option(
+    "--size-weight",
+    type=float,
+    default=1.0,
+    help="Weight for byte count in ranking (default: 1.0)",
+)
+@click.option(
+    "--count-weight",
+    type=float,
+    default=0.0,
+    help="Weight for repo count in ranking (default: 0.0)",
+)
+@click.option(
+    "--card-width",
+    type=int,
+    help="Card width in pixels (min: 280)",
+)
+@click.option(
+    "--title-color",
+    help="Custom title color (hex without #)",
+)
+@click.option(
+    "--text-color",
+    help="Custom text color (hex without #)",
+)
+@click.option(
+    "--bg-color",
+    help="Custom background color or gradient (hex or angle,color1,color2)",
+)
+@click.option(
+    "--border-color",
+    help="Custom border color (hex without #)",
+)
+@click.option(
+    "--custom-title",
+    help="Custom card title",
+)
+@click.option(
+    "--border-radius",
+    type=float,
+    default=4.5,
+    help="Border radius (default: 4.5)",
+)
+@click.option(
+    "--stats-format",
+    type=click.Choice(["percentages", "bytes"]),
+    default="percentages",
+    help="Display format for stats",
+)
+@click.option(
+    "--disable-animations",
+    is_flag=True,
+    help="Disable CSS animations",
+)
+def top_langs(
+    username: str,
+    token: str,
+    output: str,
+    theme: str,
+    hide_border: bool,
+    hide_title: bool,
+    hide_progress: bool,
+    layout: str,
+    langs_count: Union[int, None],
+    hide: str,
+    exclude_repo: str,
+    size_weight: float,
+    count_weight: float,
+    card_width: Union[int, None],
+    title_color: Union[str, None],
+    text_color: Union[str, None],
+    bg_color: Union[str, None],
+    border_color: Union[str, None],
+    custom_title: Union[str, None],
+    border_radius: float,
+    stats_format: str,
+    disable_animations: bool,
+) -> None:
+    """
+    Generate Top Languages Card SVG.
+    
+    This tool fetches programming languages from your GitHub repositories
+    and generates a beautiful SVG card showing language distribution.
+    
+    Examples:
+      
+      # Basic usage
+      github-stats-card top-langs -u octocat -o top-langs.svg
+      
+      # Compact layout with dark theme
+      github-stats-card top-langs -u octocat -o langs.svg \\
+        --layout compact --theme vue-dark --hide-border
+      
+      # Donut chart, hide specific languages
+      github-stats-card top-langs -u octocat -o langs.svg \\
+        --layout donut --hide "HTML,CSS,Makefile" --langs-count 8
+      
+      # Balanced size and repo count weighting
+      github-stats-card top-langs -u octocat -o langs.svg \\
+        --size-weight 0.5 --count-weight 0.5
+    """
+    try:
+        # Parse hide and exclude lists
+        hide_list = [s.strip() for s in hide.split(",") if s.strip()]
+        exclude_list = [s.strip() for s in exclude_repo.split(",") if s.strip()]
+
+        # Fetch languages from GitHub
+        click.echo(f"Fetching language data for {username}...", err=True)
+        top_languages = fetch_top_languages(
+            username=username,
+            token=token,
+            exclude_repo=exclude_list,
+            size_weight=size_weight,
+            count_weight=count_weight,
+        )
+
+        if not top_languages:
+            click.echo("⚠️  No languages found", err=True)
+        else:
+            click.echo(
+                f"Found {len(top_languages)} languages across repositories", err=True
+            )
+
+        # Render SVG card
+        click.echo("Generating SVG card...", err=True)
+        svg = render_top_languages(
+            top_langs=top_languages,
+            hide=hide_list,
+            hide_title=hide_title,
+            hide_border=hide_border,
+            hide_progress=hide_progress,
+            card_width=card_width,
+            layout=layout,
+            langs_count=langs_count,
+            theme=theme,
+            custom_title=custom_title,
+            title_color=title_color,
+            text_color=text_color,
+            bg_color=bg_color,
+            border_color=border_color,
+            border_radius=border_radius,
+            stats_format=stats_format,
+            disable_animations=disable_animations,
+        )
+
+        # Write to file
+        output_path = os.path.abspath(output)
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(svg)
+
+        click.echo(f"✅ Generated {output_path}", err=True)
+
+    except LanguageFetchError as e:
+        click.echo(f"❌ Error fetching language data: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"❌ Unexpected error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    main()
+    cli()

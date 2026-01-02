@@ -4,12 +4,13 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-26%20passed-success.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-59%20passed-success.svg)](#testing)
 
 ## Features
 
 - 🎨 **50+ Built-in Themes** - Choose from a variety of beautiful color schemes
 - 📊 **Comprehensive Stats** - Stars, commits, PRs, issues, reviews, and more
+- 🔤 **Top Languages Card** - Show your most used programming languages with 5 layouts
 - 🔧 **Highly Customizable** - Customize colors, layout, and content
 - 🚀 **GitHub Actions Ready** - Perfect for automated daily/weekly updates
 - 🎯 **Local Generation** - No external service dependencies
@@ -72,83 +73,120 @@ https://github.com/settings/tokens/new
 export GITHUB_TOKEN=ghp_your_token_here
 ```
 
-### Generate your stats card
+### Generate your cards
 
 ```bash
-github-stats-card -u your-username -o stats.svg
+# GitHub stats card
+github-stats-card stats -u your-username -o stats.svg
+
+# Top languages card
+github-stats-card top-langs -u your-username -o top-langs.svg
 ```
 
 ## Usage
 
-### Basic Usage
+The CLI provides two main commands:
+- `stats` - Generate GitHub stats card
+- `top-langs` - Generate top languages card
+
+### GitHub Stats Card
 
 ```bash
 # Generate with default theme
-github-stats-card -u octocat -o stats.svg
+github-stats-card stats -u octocat -o stats.svg
 
 # Use a specific theme
-github-stats-card -u octocat -o stats.svg --theme vue-dark
+github-stats-card stats -u octocat -o stats.svg --theme vue-dark
 
 # Show icons and hide border
-github-stats-card -u octocat -o stats.svg --show-icons --hide-border
+github-stats-card stats -u octocat -o stats.svg --show-icons --hide-border
+```
+
+### Top Languages Card
+
+```bash
+# Generate with default layout (normal)
+github-stats-card top-langs -u octocat -o top-langs.svg
+
+# Compact layout
+github-stats-card top-langs -u octocat -o top-langs.svg --layout compact
+
+# Donut chart with dark theme
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --layout donut --theme vue-dark --hide-border
+
+# Hide specific languages
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --hide "HTML,CSS,Makefile" --langs-count 8
+
+# Pie chart with bytes display
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --layout pie --stats-format bytes
 ```
 
 ### Advanced Options
 
+**Stats Card:**
 ```bash
 # Hide specific stats
-github-stats-card -u octocat -o stats.svg --hide stars,prs
+github-stats-card stats -u octocat -o stats.svg --hide stars,prs
 
 # Show additional stats
-github-stats-card -u octocat -o stats.svg --show reviews,discussions_started
+github-stats-card stats -u octocat -o stats.svg --show reviews,discussions_started
 
 # Include all commits (not just current year)
-github-stats-card -u octocat -o stats.svg --include-all-commits
+github-stats-card stats -u octocat -o stats.svg --include-all-commits
 
 # Custom colors
-github-stats-card -u octocat -o stats.svg \
+github-stats-card stats -u octocat -o stats.svg \
   --title-color ff6e96 \
   --text-color f8f8f2 \
   --bg-color 282a36
 
 # Gradient background
-github-stats-card -u octocat -o stats.svg \
+github-stats-card stats -u octocat -o stats.svg \
   --bg-color "90,ff0000,00ff00,0000ff"
+```
+
+**Top Languages Card:**
+```bash
+# Exclude specific repositories
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --exclude-repo "repo1,repo2"
+
+# Custom weighting (balance size and repo count)
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --size-weight 0.5 --count-weight 0.5
+
+# Custom width and colors
+github-stats-card top-langs -u octocat -o top-langs.svg \
+  --card-width 400 \
+  --title-color ff6e96 \
+  --text-color f8f8f2 \
+  --bg-color 282a36
 ```
 
 ### All Options
 
-```
-Options:
-  -u, --username TEXT             GitHub username [required]
-  -t, --token TEXT                GitHub PAT (or set GITHUB_TOKEN) [required]
-  -o, --output PATH               Output SVG file path [required]
-  --theme TEXT                    Theme name (default, dark, radical, etc.)
-  --show-icons                    Show icons next to stats
-  --hide-border                   Hide card border
-  --hide-title                    Hide card title
-  --hide-rank                     Hide rank circle
-  --include-all-commits           Count all commits (not just current year)
-  --hide TEXT                     Comma-separated stats to hide
-  --show TEXT                     Comma-separated additional stats to show
-  --title-color TEXT              Custom title color (hex without #)
-  --text-color TEXT               Custom text color
-  --icon-color TEXT               Custom icon color
-  --bg-color TEXT                 Custom background color or gradient
-  --border-color TEXT             Custom border color
-  --ring-color TEXT               Custom rank ring color
-  --custom-title TEXT             Custom card title text
-  --locale TEXT                   Language locale (default: en)
-  --card-width INTEGER            Card width in pixels
-  --line-height INTEGER           Line height between stats (default: 25)
-  --border-radius FLOAT           Border radius (default: 4.5)
-  --number-format [short|long]    Number format: short (6.6k) or long (6626)
-  --number-precision INTEGER      Decimal places for short format (0-2)
-  --rank-icon [default|github|percentile]  Rank icon style
-  --disable-animations            Disable CSS animations
-  --text-bold / --no-text-bold    Use bold text (default: yes)
-  --help                          Show this message and exit
-```
+Run `github-stats-card stats --help` or `github-stats-card top-langs --help` for complete option lists.
+
+**Stats Card Options:**
+- Basic: username, token, output, theme
+- Display: show-icons, hide-border, hide-title, hide-rank, hide/show stats
+- Commits: include-all-commits, commits-year
+- Colors: title-color, text-color, icon-color, bg-color, border-color, ring-color
+- Layout: card-width, line-height, border-radius
+- Formatting: number-format, number-precision, locale, custom-title
+- Other: rank-icon, disable-animations, text-bold
+
+**Top Languages Card Options:**
+- Basic: username, token, output, theme
+- Display: hide-border, hide-title, hide-progress
+- Layout: layout (normal/compact/donut/donut-vertical/pie), card-width, border-radius
+- Languages: langs-count, hide (languages), exclude-repo
+- Ranking: size-weight, count-weight
+- Colors: title-color, text-color, bg-color, border-color
+- Other: stats-format (percentages/bytes), custom-title, disable-animations
 
 ## Available Themes
 
@@ -201,8 +239,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Dark theme
-          github-stats-card \
+          # Stats card - Dark theme
+          github-stats-card stats \
             --username ${{ github.repository_owner }} \
             --output img/github-stats-dark.svg \
             --theme vue-dark \
@@ -210,14 +248,32 @@ jobs:
             --hide-border \
             --include-all-commits
           
-          # Light theme
-          github-stats-card \
+          # Stats card - Light theme
+          github-stats-card stats \
             --username ${{ github.repository_owner }} \
             --output img/github-stats-light.svg \
             --theme vue \
             --show-icons \
             --hide-border \
             --include-all-commits
+          
+          # Top languages card - Dark theme
+          github-stats-card top-langs \
+            --username ${{ github.repository_owner }} \
+            --output img/top-langs-dark.svg \
+            --theme vue-dark \
+            --layout compact \
+            --hide-border \
+            --langs-count 8
+          
+          # Top languages card - Light theme
+          github-stats-card top-langs \
+            --username ${{ github.repository_owner }} \
+            --output img/top-langs-light.svg \
+            --theme vue \
+            --layout compact \
+            --hide-border \
+            --langs-count 8
       
       - name: Commit and push if changed
         run: |
@@ -233,11 +289,19 @@ Then add to your README:
 ```markdown
 ## My GitHub Stats
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="img/github-stats-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="img/github-stats-light.svg">
-  <img alt="GitHub Stats" src="img/github-stats-dark.svg">
-</picture>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="img/github-stats-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="img/github-stats-light.svg">
+    <img alt="GitHub Stats" src="img/github-stats-dark.svg">
+  </picture>
+  
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="img/top-langs-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="img/top-langs-light.svg">
+    <img alt="Top Languages" src="img/top-langs-dark.svg">
+  </picture>
+</div>
 ```
 
 ## Development
@@ -276,16 +340,23 @@ mypy github_stats_card
 
 The project is organized into focused modules:
 
-- `fetcher.py` - GitHub GraphQL/REST API client
+**Core:**
+- `cli.py` - Command-line interface with Click command group
+- `card.py` - Base SVG card renderer
+- `themes.py` - Theme definitions (50+ themes)
+- `colors.py` - Color parsing and utilities
+- `utils.py` - Utility functions
+
+**Stats Card:**
+- `fetcher.py` - GitHub GraphQL/REST API client for user stats
 - `rank.py` - Rank calculation algorithm
 - `stats_card.py` - Stats card SVG renderer
-- `card.py` - Base SVG card renderer
-- `themes.py` - Theme definitions
-- `colors.py` - Color parsing and utilities
 - `icons.py` - SVG icon definitions
 - `i18n.py` - Internationalization
-- `utils.py` - Utility functions
-- `cli.py` - Command-line interface
+
+**Top Languages Card:**
+- `langs_fetcher.py` - GitHub GraphQL API client for language stats
+- `langs_card.py` - Top languages card SVG renderer (5 layouts)
 
 ## Credits
 
