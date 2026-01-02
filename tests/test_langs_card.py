@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.config import LangsCardConfig
 from src.langs_card import (
     format_bytes,
     get_default_langs_count,
@@ -85,7 +86,8 @@ def test_render_top_languages_basic():
         "JavaScript": Language("JavaScript", "#f1e05a", 500, 3),
     }
 
-    svg = render_top_languages(langs, layout="normal")
+    config = LangsCardConfig(layout="normal")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "Python" in svg
@@ -98,7 +100,8 @@ def test_render_top_languages_compact():
     """Test compact layout rendering."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, layout="compact")
+    config = LangsCardConfig(layout="compact")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "Python" in svg
@@ -109,7 +112,8 @@ def test_render_top_languages_donut():
     """Test donut layout rendering."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, layout="donut")
+    config = LangsCardConfig(layout="donut")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "Python" in svg
@@ -120,7 +124,8 @@ def test_render_top_languages_pie():
     """Test pie layout rendering."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, layout="pie")
+    config = LangsCardConfig(layout="pie")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "Python" in svg
@@ -134,7 +139,8 @@ def test_render_top_languages_hide_languages():
         "HTML": Language("HTML", "#e34c26", 500, 3),
     }
 
-    svg = render_top_languages(langs, hide=["HTML"])
+    config = LangsCardConfig(hide=["HTML"])
+    svg = render_top_languages(langs, config)
 
     assert "Python" in svg
     assert "HTML" not in svg
@@ -144,7 +150,8 @@ def test_render_top_languages_custom_title():
     """Test custom title."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, custom_title="My Languages")
+    config = LangsCardConfig(custom_title="My Languages")
+    svg = render_top_languages(langs, config)
 
     assert "My Languages" in svg
     assert "Most Used Languages" not in svg
@@ -154,7 +161,8 @@ def test_render_top_languages_hide_title():
     """Test hiding title."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, hide_title=True)
+    config = LangsCardConfig(hide_title=True)
+    svg = render_top_languages(langs, config)
 
     # Title text should not appear in body
     assert "Most Used Languages" not in svg or '<text' not in svg.split("Most Used Languages")[0]
@@ -164,7 +172,8 @@ def test_render_top_languages_hide_border():
     """Test hiding border."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, hide_border=True)
+    config = LangsCardConfig(hide_border=True)
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     # Should not have a visible border stroke
@@ -175,7 +184,8 @@ def test_render_top_languages_theme():
     """Test theme application."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, theme="dark")
+    config = LangsCardConfig(theme="dark")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     # Dark theme should have dark background colors
@@ -186,12 +196,12 @@ def test_render_top_languages_custom_colors():
     """Test custom colors."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(
-        langs,
+    config = LangsCardConfig(
         title_color="ff0000",
         text_color="00ff00",
         bg_color="000000",
     )
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "ff0000" in svg  # Title color
@@ -203,7 +213,8 @@ def test_render_top_languages_bytes_format():
     """Test bytes format display."""
     langs = {"Python": Language("Python", "#3572A5", 1048576, 5)}  # 1 MB
 
-    svg = render_top_languages(langs, stats_format="bytes")
+    config = LangsCardConfig(stats_format="bytes")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "MB" in svg or "KB" in svg or "B" in svg
@@ -213,7 +224,8 @@ def test_render_top_languages_percentages_format():
     """Test percentages format display."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, stats_format="percentages")
+    config = LangsCardConfig(stats_format="percentages")
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "%" in svg
@@ -223,8 +235,10 @@ def test_render_top_languages_disable_animations():
     """Test disabling animations."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg_with = render_top_languages(langs, disable_animations=False)
-    svg_without = render_top_languages(langs, disable_animations=True)
+    config_with = LangsCardConfig(disable_animations=False)
+    config_without = LangsCardConfig(disable_animations=True)
+    svg_with = render_top_languages(langs, config_with)
+    svg_without = render_top_languages(langs, config_without)
 
     assert "<svg" in svg_with
     assert "<svg" in svg_without
@@ -239,7 +253,8 @@ def test_render_top_languages_empty():
     """Test rendering with no languages."""
     langs = {}
 
-    svg = render_top_languages(langs)
+    config = LangsCardConfig()
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert "No languages data available" in svg
@@ -249,7 +264,8 @@ def test_render_top_languages_invalid_layout():
     """Test invalid layout falls back to normal."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, layout="invalid")
+    config = LangsCardConfig(layout="invalid")
+    svg = render_top_languages(langs, config)
 
     # Should still render successfully with normal layout
     assert "<svg" in svg
@@ -262,7 +278,8 @@ def test_render_top_languages_langs_count():
         f"Lang{i}": Language(f"Lang{i}", "#000000", 1000 - i * 100, 1) for i in range(10)
     }
 
-    svg = render_top_languages(langs, langs_count=3)
+    config = LangsCardConfig(langs_count=3)
+    svg = render_top_languages(langs, config)
 
     # Should only show top 3
     assert "Lang0" in svg
@@ -275,17 +292,19 @@ def test_render_top_languages_card_width():
     """Test custom card width."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, card_width=500)
+    config = LangsCardConfig(card_width=400)
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
-    assert 'width="500"' in svg
+    assert 'width="400"' in svg
 
 
 def test_render_top_languages_border_radius():
     """Test custom border radius."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg = render_top_languages(langs, border_radius=10.0)
+    config = LangsCardConfig(border_radius=10.0)
+    svg = render_top_languages(langs, config)
 
     assert "<svg" in svg
     assert 'rx="10' in svg or "10.0" in svg
@@ -295,8 +314,10 @@ def test_render_top_languages_hide_progress():
     """Test hiding progress bars."""
     langs = {"Python": Language("Python", "#3572A5", 1000, 5)}
 
-    svg_normal = render_top_languages(langs, layout="normal", hide_progress=False)
-    svg_hidden = render_top_languages(langs, layout="normal", hide_progress=True)
+    config_normal = LangsCardConfig(layout="normal", hide_progress=False)
+    config_hidden = LangsCardConfig(layout="normal", hide_progress=True)
+    svg_normal = render_top_languages(langs, config_normal)
+    svg_hidden = render_top_languages(langs, config_hidden)
 
     # Normal should have progress bars (rect elements)
     assert svg_normal.count("<rect") > svg_hidden.count("<rect")

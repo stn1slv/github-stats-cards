@@ -1,9 +1,8 @@
 """Stats card SVG renderer with all customization options."""
 
-from typing import Union
-
 from .card import render_card
 from .colors import get_card_colors
+from .config import StatsCardConfig
 from .constants import (
     ANIMATION_INITIAL_DELAY_MS,
     ANIMATION_STAGGER_DELAY_MS,
@@ -22,78 +21,31 @@ from .rank import calculate_rank
 from .utils import encode_html, k_formatter
 
 
-def render_stats_card(
-    stats: UserStats,
-    theme: str = "default",
-    hide: Union[list[str], None] = None,
-    show: Union[list[str], None] = None,
-    hide_title: bool = False,
-    hide_border: bool = False,
-    hide_rank: bool = False,
-    show_icons: bool = False,
-    title_color: Union[str, None] = None,
-    text_color: Union[str, None] = None,
-    icon_color: Union[str, None] = None,
-    bg_color: Union[str, None] = None,
-    border_color: Union[str, None] = None,
-    ring_color: Union[str, None] = None,
-    custom_title: Union[str, None] = None,
-    locale: str = "en",
-    card_width: Union[int, None] = None,
-    line_height: int = 25,
-    border_radius: float = 4.5,
-    number_format: str = "short",
-    number_precision: Union[int, None] = None,
-    rank_icon: str = "default",
-    disable_animations: bool = False,
-    text_bold: bool = True,
-    include_all_commits: bool = False,
-) -> str:
+def render_stats_card(stats: UserStats, config: StatsCardConfig) -> str:
     """
     Render GitHub stats card as SVG.
 
     Args:
         stats: User statistics dictionary from fetcher
-        theme: Theme name
-        hide: List of stats to hide (stars, commits, prs, issues, contribs)
-        show: List of additional stats to show (reviews, discussions_started, etc.)
-        hide_title: Hide card title
-        hide_border: Hide card border
-        hide_rank: Hide rank circle
-        show_icons: Show icons next to stats
-        title_color: Custom title color (hex without #)
-        text_color: Custom text color
-        icon_color: Custom icon color
-        bg_color: Custom background color
-        border_color: Custom border color
-        ring_color: Custom rank ring color
-        custom_title: Custom card title
-        locale: Language locale
-        card_width: Card width in pixels
-        line_height: Line height between stats
-        border_radius: Border radius
-        number_format: 'short' (6.6k) or 'long' (6626)
-        number_precision: Decimal places for short format
-        rank_icon: Rank icon style
-        disable_animations: Disable CSS animations
-        text_bold: Use bold text
-        include_all_commits: Whether commits are all-time
+        config: Configuration object with all rendering options
 
     Returns:
         Complete SVG markup as string
-    """
-    hide = hide or []
-    show = show or []
 
+    Examples:
+        >>> from .config import StatsCardConfig
+        >>> config = StatsCardConfig(theme="dark", show_icons=True)
+        >>> svg = render_stats_card(stats, config)
+    """
     # Get resolved colors
     colors = get_card_colors(
-        theme=theme,
-        title_color=title_color,
-        text_color=text_color,
-        icon_color=icon_color,
-        bg_color=bg_color,
-        border_color=border_color,
-        ring_color=ring_color,
+        theme=config.theme,
+        title_color=config.title_color,
+        text_color=config.text_color,
+        icon_color=config.icon_color,
+        bg_color=config.bg_color,
+        border_color=config.border_color,
+        ring_color=config.ring_color,
     )
 
     # Calculate rank
@@ -104,11 +56,13 @@ def render_stats_card(
         reviews=stats["totalReviews"],
         stars=stats["totalStars"],
         followers=stats["followers"],
-        all_commits=include_all_commits,
+        all_commits=config.include_all_commits,
     )
 
     # Determine title
-    title = custom_title or get_translation("statcard_title", locale, name=stats["name"])
+    title = config.custom_title or get_translation(
+        "statcard_title", config.locale, name=stats["name"]
+    )
 
     # Build stat items
     stat_items = []
@@ -116,53 +70,53 @@ def render_stats_card(
     # Define available stats
     all_stats = {
         "stars": {
-            "label": get_translation("statcard_totalstars", locale),
+            "label": get_translation("statcard_totalstars", config.locale),
             "value": stats["totalStars"],
             "icon": "star",
         },
         "commits": {
-            "label": get_translation("statcard_commits", locale),
+            "label": get_translation("statcard_commits", config.locale),
             "value": stats["totalCommits"],
             "icon": "commits",
         },
         "prs": {
-            "label": get_translation("statcard_prs", locale),
+            "label": get_translation("statcard_prs", config.locale),
             "value": stats["totalPRs"],
             "icon": "prs",
         },
         "prs_merged": {
-            "label": get_translation("statcard_prs_merged", locale),
+            "label": get_translation("statcard_prs_merged", config.locale),
             "value": stats["mergedPRs"],
             "icon": "prs_merged",
         },
         "prs_merged_percentage": {
-            "label": get_translation("statcard_prs_merged_percentage", locale),
+            "label": get_translation("statcard_prs_merged_percentage", config.locale),
             "value": f"{(stats['mergedPRs'] / stats['totalPRs'] * 100) if stats['totalPRs'] > 0 else 0:.1f}%",
             "icon": "prs_merged",
             "skip_format": True,
         },
         "issues": {
-            "label": get_translation("statcard_issues", locale),
+            "label": get_translation("statcard_issues", config.locale),
             "value": stats["totalIssues"],
             "icon": "issues",
         },
         "contribs": {
-            "label": get_translation("statcard_contribs", locale),
+            "label": get_translation("statcard_contribs", config.locale),
             "value": stats["contributedTo"],
             "icon": "contribs",
         },
         "reviews": {
-            "label": get_translation("statcard_reviews", locale),
+            "label": get_translation("statcard_reviews", config.locale),
             "value": stats["totalReviews"],
             "icon": "reviews",
         },
         "discussions_started": {
-            "label": get_translation("statcard_discussions_started", locale),
+            "label": get_translation("statcard_discussions_started", config.locale),
             "value": stats["discussionsStarted"],
             "icon": "discussions_started",
         },
         "discussions_answered": {
-            "label": get_translation("statcard_discussions_answered", locale),
+            "label": get_translation("statcard_discussions_answered", config.locale),
             "value": stats["discussionsAnswered"],
             "icon": "discussions_answered",
         },
@@ -174,11 +128,11 @@ def render_stats_card(
     # Determine which stats to display
     stats_to_show = []
     for stat_key in default_stats:
-        if stat_key not in hide:
+        if stat_key not in config.hide:
             stats_to_show.append(stat_key)
 
     # Add explicitly requested stats
-    for stat_key in show:
+    for stat_key in config.show:
         if stat_key in all_stats and stat_key not in stats_to_show:
             stats_to_show.append(stat_key)
 
@@ -193,9 +147,9 @@ def render_stats_card(
 
         # Format value
         if not stat.get("skip_format"):
-            if number_format == "short":
-                if number_precision is not None:
-                    formatted_value = k_formatter(int(value), number_precision)
+            if config.number_format == "short":
+                if config.number_precision is not None:
+                    formatted_value = k_formatter(int(value), config.number_precision)
                 else:
                     formatted_value = k_formatter(int(value))
             else:
@@ -206,7 +160,7 @@ def render_stats_card(
         # Icon
         icon_svg = ""
         label_x = STAT_LABEL_X_BASE
-        if show_icons:
+        if config.show_icons:
             icon_svg = get_icon_svg(stat["icon"], colors["iconColor"])
             label_x = STAT_LABEL_X_WITH_ICON
 
@@ -216,10 +170,10 @@ def render_stats_card(
         # Calculate value position (right-aligned)
         value_x = STAT_VALUE_X_POSITION  # Match reference position
 
-        bold_class = "bold" if text_bold else ""
+        bold_class = "bold" if config.text_bold else ""
 
         # Nested transform structure matching reference
-        stat_svg = f"""<g transform="translate(0, {i * line_height})">
+        stat_svg = f"""<g transform="translate(0, {i * config.line_height})">
     <g class="stagger" style="animation-delay: {delay}ms" transform="translate(25, 0)">
       {icon_svg}
       <text class="stat {bold_class}" x="{label_x}" y="12.5">{label}:</text>
@@ -231,7 +185,7 @@ def render_stats_card(
 
     # Rank circle
     rank_svg = ""
-    if not hide_rank:
+    if not config.hide_rank:
         ring_color_value = colors.get("ringColor") or colors["titleColor"]
         if isinstance(ring_color_value, list):
             # Use first color from gradient
@@ -263,10 +217,10 @@ def render_stats_card(
     num_stats = len(stat_items)
     # Reference: 165 height for 5 stats with no title
     # That's 5*25 = 125 + 40 = 165
-    card_height = (num_stats * line_height) + STATS_CARD_BASE_HEIGHT
+    card_height = (num_stats * config.line_height) + STATS_CARD_BASE_HEIGHT
 
     # Use provided width or default to 467 (matches reference)
-    final_width = card_width or 467
+    final_width = config.card_width or 467
 
     return render_card(
         title=title,
@@ -274,10 +228,10 @@ def render_stats_card(
         width=final_width,
         height=card_height,
         colors=colors,
-        hide_title=hide_title,
-        hide_border=hide_border,
-        border_radius=border_radius,
-        disable_animations=disable_animations,
+        hide_title=config.hide_title,
+        hide_border=config.hide_border,
+        border_radius=config.border_radius,
+        disable_animations=config.disable_animations,
         a11y_title=title,
         a11y_desc=f"{stats['name']}'s GitHub statistics",
     )

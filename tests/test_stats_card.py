@@ -1,5 +1,6 @@
 """Tests for stats card renderer."""
 
+from src.config import StatsCardConfig
 from src.stats_card import render_stats_card
 from src.fetcher import UserStats
 
@@ -21,7 +22,8 @@ def test_render_stats_card_basic():
         "discussionsAnswered": 8,
     }
 
-    svg = render_stats_card(stats)
+    config = StatsCardConfig()
+    svg = render_stats_card(stats, config)
 
     # Check that SVG contains expected elements
     assert "<svg" in svg
@@ -48,7 +50,9 @@ def test_render_stats_card_hide_stats():
         "discussionsAnswered": 8,
     }
 
-    svg = render_stats_card(stats, hide=["stars", "prs"])
+    config = StatsCardConfig(hide=["stars", "prs"])
+
+    svg = render_stats_card(stats, config)
 
     assert "Total Stars" not in svg
     assert "Total PRs" not in svg
@@ -72,7 +76,8 @@ def test_render_stats_card_show_additional():
         "discussionsAnswered": 8,
     }
 
-    svg = render_stats_card(stats, show=["reviews", "discussions_started"])
+    config = StatsCardConfig(show=["reviews", "discussions_started"])
+    svg = render_stats_card(stats, config)
 
     assert "Total Reviews" in svg
     assert "Discussions Started" in svg
@@ -95,7 +100,8 @@ def test_render_stats_card_custom_theme():
         "discussionsAnswered": 8,
     }
 
-    svg = render_stats_card(stats, theme="dark")
+    config = StatsCardConfig(theme="dark")
+    svg = render_stats_card(stats, config)
 
     assert "<svg" in svg
     # Dark theme colors should be applied
@@ -119,8 +125,10 @@ def test_render_stats_card_hide_rank():
         "discussionsAnswered": 8,
     }
 
-    svg_with_rank = render_stats_card(stats, hide_rank=False)
-    svg_without_rank = render_stats_card(stats, hide_rank=True)
+    config_with_rank = StatsCardConfig(hide_rank=False)
+    config_without_rank = StatsCardConfig(hide_rank=True)
+    svg_with_rank = render_stats_card(stats, config_with_rank)
+    svg_without_rank = render_stats_card(stats, config_without_rank)
 
     # Check for actual rank circle element, not just CSS classes
     assert 'data-testid="rank-circle"' in svg_with_rank
@@ -144,6 +152,7 @@ def test_render_stats_card_custom_title():
         "discussionsAnswered": 8,
     }
 
-    svg = render_stats_card(stats, custom_title="My Custom Stats")
+    config = StatsCardConfig(custom_title="My Custom Stats")
+    svg = render_stats_card(stats, config)
 
     assert "My Custom Stats" in svg

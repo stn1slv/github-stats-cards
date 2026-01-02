@@ -1,10 +1,11 @@
 """Top Languages card renderer with multiple layout styles."""
 
 import math
-from typing import Union
+from typing import Optional
 
 from .card import render_card
 from .colors import get_card_colors, parse_color
+from .config import LangsCardConfig
 from .constants import (
     CARD_PADDING,
     DEFAULT_LANG_COLOR,
@@ -24,7 +25,7 @@ from .utils import clamp_value, encode_html
 def trim_top_languages(
     top_langs: dict[str, Language],
     langs_count: int,
-    hide: Union[list[str], None] = None,
+    hide: Optional[list[str]] = None,
 ) -> tuple[list[Language], int]:
     """
     Trim languages to specified count while hiding certain languages.
@@ -357,87 +358,66 @@ def render_pie_layout(
 
 def render_top_languages(
     top_langs: dict[str, Language],
-    hide: Union[list[str], None] = None,
-    hide_title: bool = False,
-    hide_border: bool = False,
-    hide_progress: bool = False,
-    card_width: Union[int, None] = None,
-    layout: str = "normal",
-    langs_count: Union[int, None] = None,
-    theme: str = "default",
-    custom_title: Union[str, None] = None,
-    title_color: Union[str, None] = None,
-    text_color: Union[str, None] = None,
-    bg_color: Union[str, None] = None,
-    border_color: Union[str, None] = None,
-    border_radius: float = 4.5,
-    disable_animations: bool = False,
-    stats_format: str = "percentages",
+    config: LangsCardConfig,
 ) -> str:
     """
     Render top languages card as SVG.
 
     Args:
         top_langs: Dictionary of language name to Language object
-        hide: Languages to hide
-        hide_title: Whether to hide title
-        hide_border: Whether to hide border
-        hide_progress: Whether to hide progress bars
-        card_width: Card width in pixels
-        layout: Layout type (normal, compact, donut, donut-vertical, pie)
-        langs_count: Number of languages to show
-        theme: Theme name
-        custom_title: Custom title
-        title_color, text_color, bg_color, border_color: Custom colors
-        border_radius: Border radius
-        disable_animations: Whether to disable animations
-        stats_format: "percentages" or "bytes"
+        config: Configuration object with all rendering options
 
     Returns:
         SVG string
+
+    Examples:
+        >>> from .config import LangsCardConfig
+        >>> config = LangsCardConfig(layout="compact", theme="dark")
+        >>> svg = render_top_languages(langs, config)
     """
     # Validate layout
     valid_layouts = ["normal", "compact", "donut", "donut-vertical", "pie"]
-    if layout not in valid_layouts:
-        layout = "normal"
+    if config.layout not in valid_layouts:
+        config.layout = "normal"
 
     # Validate stats_format
-    if stats_format not in ["percentages", "bytes"]:
-        stats_format = "percentages"
+    if config.stats_format not in ["percentages", "bytes"]:
+        config.stats_format = "percentages"
 
     # Default langs_count based on layout
+    langs_count = config.langs_count
     if langs_count is None:
-        langs_count = get_default_langs_count(layout)
+        langs_count = get_default_langs_count(config.layout)
 
     # Trim and filter languages
-    langs, total_size = trim_top_languages(top_langs, langs_count, hide)
+    langs, total_size = trim_top_languages(top_langs, langs_count, config.hide)
 
     # Card dimensions
-    width = card_width or DEFAULT_LANGS_CARD_WIDTH
+    width = config.card_width or DEFAULT_LANGS_CARD_WIDTH
     width = max(width, MIN_CARD_WIDTH)
 
     # Calculate height based on layout
-    if layout == "compact" or hide_progress:
+    if config.layout == "compact" or config.hide_progress:
         height = 90 + ((len(langs) + 1) // 2) * 25
-        if hide_progress:
+        if config.hide_progress:
             height -= 25
-    elif layout == "donut":
+    elif config.layout == "donut":
         height = 215 + max(len(langs) - 5, 0) * 32
         width = width + 50
-    elif layout == "donut-vertical":
+    elif config.layout == "donut-vertical":
         height = 300 + ((len(langs) + 1) // 2) * 25
-    elif layout == "pie":
+    elif config.layout == "pie":
         height = 300 + ((len(langs) + 1) // 2) * 25
     else:  # normal
         height = 45 + (len(langs) + 1) * 40
 
     # Get theme colors
     colors = get_card_colors(
-        theme=theme,
-        title_color=title_color,
-        text_color=text_color,
-        bg_color=bg_color,
-        border_color=border_color,
+        theme=config.theme,
+        title_color=config.title_color,
+        text_color=config.text_color,
+        bg_color=config.bg_color,
+        border_color=config.border_color,
     )
 
     # Extract text color for rendering
@@ -453,25 +433,25 @@ def render_top_languages(
         final_layout = f'''
         <text x="25" y="50" class="lang-name">No languages data available</text>
         '''
-    elif layout == "pie":
-        final_layout = render_pie_layout(langs, total_size, stats_format, final_text_color)
-    elif layout == "donut-vertical":
+    elif config.layout == "pie":
+        final_layout = render_pie_layout(langs, total_size, config.stats_format, final_text_color)
+    elif config.layout == "donut-vertical":
         final_layout = f'''
         <g transform="translate(0, 0)">
-          {render_pie_layout(langs, total_size, stats_format, final_text_color)}
+          {render_pie_layout(langs, total_size, config.stats_format, final_text_color)}
         </g>
         '''
-    elif layout == "donut":
+    elif config.layout == "donut":
         final_layout = render_donut_layout(
-            langs, width, total_size, stats_format, final_text_color
+            langs, width, total_size, config.stats_format, final_text_color
         )
-    elif layout == "compact" or hide_progress:
+    elif config.layout == "compact" or config.hide_progress:
         final_layout = render_compact_layout(
-            langs, width, total_size, hide_progress, stats_format, final_text_color
+            langs, width, total_size, config.hide_progress, config.stats_format, final_text_color
         )
     else:
         final_layout = render_normal_layout(
-            langs, width, total_size, stats_format, final_text_color
+            langs, width, total_size, config.stats_format, final_text_color
         )
 
     # Add CSS
@@ -482,7 +462,7 @@ def render_top_languages(
     }}
     '''
 
-    if not disable_animations:
+    if not config.disable_animations:
         css += '''
     .stagger {
       opacity: 0;
@@ -502,7 +482,7 @@ def render_top_languages(
     '''
 
     # Wrap in padding group for most layouts
-    if layout in ["pie", "donut-vertical"]:
+    if config.layout in ["pie", "donut-vertical"]:
         body = final_layout
     else:
         body = f'<svg data-testid="lang-items" x="{CARD_PADDING}">{final_layout}</svg>'
@@ -511,17 +491,17 @@ def render_top_languages(
     body = f"<style>{css}</style>\n{body}"
 
     # Render card
-    title = custom_title or "Most Used Languages"
+    title = config.custom_title or "Most Used Languages"
     svg = render_card(
         title=title,
         body=body,
         width=width,
         height=height,
         colors=colors,
-        hide_title=hide_title,
-        hide_border=hide_border,
-        border_radius=border_radius,
-        disable_animations=disable_animations,
+        hide_title=config.hide_title,
+        hide_border=config.hide_border,
+        border_radius=config.border_radius,
+        disable_animations=config.disable_animations,
     )
 
     return svg

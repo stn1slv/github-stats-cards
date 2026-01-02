@@ -6,6 +6,7 @@ from typing import Union
 
 import click
 
+from .config import FetchConfig, LangsFetchConfig, LangsCardConfig, StatsCardConfig
 from .exceptions import FetchError, LanguageFetchError
 from .fetcher import fetch_stats
 from .langs_fetcher import fetch_top_languages
@@ -215,33 +216,37 @@ def stats(
       github-stats-card -u octocat -o stats.svg --show reviews,discussions_started
     """
     try:
-        # Parse hide/show lists
-        hide_list = [s.strip() for s in hide.split(",") if s.strip()]
-        show_list = [s.strip() for s in show.split(",") if s.strip()]
-
-        # Fetch stats from GitHub
-        click.echo(f"Fetching GitHub stats for {username}...", err=True)
-        stats = fetch_stats(
+        # Create fetch configuration
+        fetch_config = FetchConfig.from_cli_args(
             username=username,
             token=token,
             include_all_commits=include_all_commits,
             commits_year=commits_year,
-            show=show_list,
+            show=show,
+        )
+
+        # Fetch stats from GitHub
+        click.echo(f"Fetching GitHub stats for {username}...", err=True)
+        stats = fetch_stats(
+            username=fetch_config.username,
+            token=fetch_config.token,
+            include_all_commits=fetch_config.include_all_commits,
+            commits_year=fetch_config.commits_year,
+            show=fetch_config.show,
         )
 
         click.echo(f"Found stats for {stats['name']} (@{stats['login']})", err=True)
 
-        # Render SVG card
-        click.echo("Generating SVG card...", err=True)
-        svg = render_stats_card(
-            stats=stats,
+        # Create rendering configuration
+        render_config = StatsCardConfig.from_cli_args(
             theme=theme,
-            hide=hide_list,
-            show=show_list,
-            hide_title=hide_title,
-            hide_border=hide_border,
-            hide_rank=hide_rank,
             show_icons=show_icons,
+            hide_border=hide_border,
+            hide_title=hide_title,
+            hide_rank=hide_rank,
+            include_all_commits=include_all_commits,
+            hide=hide,
+            show=show,
             title_color=title_color,
             text_color=text_color,
             icon_color=icon_color,
@@ -258,8 +263,11 @@ def stats(
             rank_icon=rank_icon,
             disable_animations=disable_animations,
             text_bold=text_bold,
-            include_all_commits=include_all_commits,
         )
+
+        # Render SVG card
+        click.echo("Generating SVG card...", err=True)
+        svg = render_stats_card(stats, render_config)
 
         # Write to file
         output_path = os.path.abspath(output)
@@ -442,18 +450,23 @@ def top_langs(
         --size-weight 0.5 --count-weight 0.5
     """
     try:
-        # Parse hide and exclude lists
-        hide_list = [s.strip() for s in hide.split(",") if s.strip()]
-        exclude_list = [s.strip() for s in exclude_repo.split(",") if s.strip()]
+        # Create fetch configuration
+        fetch_config = LangsFetchConfig.from_cli_args(
+            username=username,
+            token=token,
+            exclude_repo=exclude_repo,
+            size_weight=size_weight,
+            count_weight=count_weight,
+        )
 
         # Fetch languages from GitHub
         click.echo(f"Fetching language data for {username}...", err=True)
         top_languages = fetch_top_languages(
-            username=username,
-            token=token,
-            exclude_repo=exclude_list,
-            size_weight=size_weight,
-            count_weight=count_weight,
+            username=fetch_config.username,
+            token=fetch_config.token,
+            exclude_repo=fetch_config.exclude_repo,
+            size_weight=fetch_config.size_weight,
+            count_weight=fetch_config.count_weight,
         )
 
         if not top_languages:
@@ -463,11 +476,9 @@ def top_langs(
                 f"Found {len(top_languages)} languages across repositories", err=True
             )
 
-        # Render SVG card
-        click.echo("Generating SVG card...", err=True)
-        svg = render_top_languages(
-            top_langs=top_languages,
-            hide=hide_list,
+        # Create rendering configuration
+        render_config = LangsCardConfig.from_cli_args(
+            hide=hide,
             hide_title=hide_title,
             hide_border=hide_border,
             hide_progress=hide_progress,
@@ -484,6 +495,10 @@ def top_langs(
             stats_format=stats_format,
             disable_animations=disable_animations,
         )
+
+        # Render SVG card
+        click.echo("Generating SVG card...", err=True)
+        svg = render_top_languages(top_languages, render_config)
 
         # Write to file
         output_path = os.path.abspath(output)
