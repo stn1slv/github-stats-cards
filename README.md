@@ -336,16 +336,117 @@ ruff check github_stats_card tests
 mypy github_stats_card
 ```
 
+## Programmatic Usage (Python API)
+
+You can use the library programmatically in your Python projects:
+
+### Stats Card
+
+```python
+from src.fetcher import fetch_user_stats
+from src.stats_card import render_stats_card
+from src.config import StatsCardConfig
+
+# Fetch stats
+stats = fetch_user_stats(username="octocat", token="ghp_your_token")
+
+# Create configuration
+config = StatsCardConfig(
+    theme="vue-dark",
+    show_icons=True,
+    hide_border=True,
+    include_all_commits=True,
+)
+
+# Render SVG
+svg = render_stats_card(stats, config)
+
+# Save to file
+with open("stats.svg", "w") as f:
+    f.write(svg)
+```
+
+### Top Languages Card
+
+```python
+from src.langs_fetcher import fetch_top_languages
+from src.langs_card import render_top_languages
+from src.config import LangsCardConfig
+
+# Fetch language stats
+langs = fetch_top_languages(username="octocat", token="ghp_your_token")
+
+# Create configuration
+config = LangsCardConfig(
+    theme="vue-dark",
+    layout="compact",
+    hide_border=True,
+    langs_count=8,
+)
+
+# Render SVG
+svg = render_top_languages(langs, config)
+
+# Save to file
+with open("top-langs.svg", "w") as f:
+    f.write(svg)
+```
+
+### Configuration Objects
+
+All configuration is done through dataclasses:
+
+**StatsCardConfig** - 20 fields including:
+- `theme`: Theme name (str)
+- `show_icons`: Display icons (bool)
+- `hide_border`: Hide card border (bool)
+- `hide`: List of stats to hide (list[str])
+- `show`: List of additional stats to show (list[str])
+- `include_all_commits`: Include commits from all years (bool)
+- `custom_title`: Custom card title (str | None)
+- `title_color`, `text_color`, `icon_color`, `bg_color`: Custom colors (str | None)
+- And more...
+
+**LangsCardConfig** - 15 fields including:
+- `theme`: Theme name (str)
+- `layout`: Layout type - "normal", "compact", "donut", "donut-vertical", "pie" (str)
+- `hide_border`: Hide card border (bool)
+- `langs_count`: Number of languages to display (int)
+- `hide`: List of languages to hide (list[str])
+- `exclude_repo`: List of repos to exclude (list[str])
+- `size_weight`, `count_weight`: Ranking weights (float)
+- And more...
+
+### Creating Config from CLI Args
+
+You can also create configurations from CLI-style arguments:
+
+```python
+from src.config import StatsCardConfig
+
+# From keyword arguments (like CLI options)
+config = StatsCardConfig.from_cli_args(
+    theme="vue-dark",
+    show_icons=True,
+    hide_border=True,
+    hide="stars,prs",  # comma-separated string
+    custom_title="My Stats"
+)
+```
+
 ## Architecture
 
 The project is organized into focused modules:
 
 **Core:**
 - `cli.py` - Command-line interface with Click command group
+- `config.py` - Configuration dataclasses (StatsCardConfig, LangsCardConfig)
 - `card.py` - Base SVG card renderer
 - `themes.py` - Theme definitions (50+ themes)
 - `colors.py` - Color parsing and utilities
 - `utils.py` - Utility functions
+- `constants.py` - Centralized constants and magic numbers
+- `exceptions.py` - Exception hierarchy
 
 **Stats Card:**
 - `fetcher.py` - GitHub GraphQL/REST API client for user stats

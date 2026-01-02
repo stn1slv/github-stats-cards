@@ -116,8 +116,38 @@ jobs:
 
 Done! Your stats will update daily automatically.
 
+## Programmatic Usage (Python API)
+
+If you want to use this tool in your Python scripts:
+
+```python
+from src.fetcher import fetch_user_stats
+from src.stats_card import render_stats_card
+from src.config import StatsCardConfig
+import os
+
+# Fetch stats
+token = os.environ["GITHUB_TOKEN"]
+stats = fetch_user_stats(username="yourusername", token=token)
+
+# Configure and render
+config = StatsCardConfig(
+    theme="vue-dark",
+    show_icons=True,
+    hide_border=True,
+)
+
+svg = render_stats_card(stats, config)
+
+# Save
+with open("my-stats.svg", "w") as f:
+    f.write(svg)
+```
+
+See [EXAMPLES.md](EXAMPLES.md) for more Python API examples.
+
 ## Next Steps
 
-- Browse [50+ themes](github_stats_card/themes.py)
+- Browse [50+ themes](src/themes.py)
 - See [EXAMPLES.md](EXAMPLES.md) for advanced usage
 - Read [README.md](README.md) for full documentation

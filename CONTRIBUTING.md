@@ -105,21 +105,28 @@ uv run github-stats-card -u octocat -o test.svg --theme dark --show-icons
 
 ```
 github-stats-card/
-├── github_stats_card/        # Main package
+├── src/                      # Main package
 │   ├── __init__.py           # Package initialization
 │   ├── __main__.py           # Entry point for python -m
 │   ├── card.py               # Base SVG card renderer
 │   ├── cli.py                # Command-line interface
+│   ├── config.py             # Configuration dataclasses
 │   ├── colors.py             # Color utilities
-│   ├── fetcher.py            # GitHub API client
+│   ├── constants.py          # Centralized constants
+│   ├── exceptions.py         # Exception hierarchy
+│   ├── fetcher.py            # GitHub API client (stats)
+│   ├── langs_fetcher.py      # GitHub API client (languages)
 │   ├── i18n.py               # Internationalization
 │   ├── icons.py              # SVG icon definitions
+│   ├── langs_card.py         # Top languages card renderer
 │   ├── rank.py               # Rank calculation
 │   ├── stats_card.py         # Stats card renderer
 │   ├── themes.py             # Theme definitions
 │   └── utils.py              # Utility functions
 ├── tests/                    # Test suite
 │   ├── test_colors.py
+│   ├── test_langs_card.py
+│   ├── test_langs_fetcher.py
 │   ├── test_rank.py
 │   ├── test_stats_card.py
 │   └── test_utils.py
@@ -162,10 +169,70 @@ github-stats-card/
 
 ### Adding a New Stat
 
-1. Update `fetcher.py` to fetch the new data from GitHub API
-2. Update `i18n.py` to add the translation key
-3. Update `stats_card.py` to include it in `all_stats` dictionary
+1. Update `src/fetcher.py` to fetch the new data from GitHub API
+2. Update `src/i18n.py` to add the translation key
+3. Update `src/stats_card.py` to include it in `all_stats` dictionary
 4. Add tests in `tests/test_stats_card.py`
+
+Example:
+
+**Step 1: Update fetcher.py**
+
+```python
+# Add to GraphQL query
+query = """
+query($login: String!) {
+    user(login: $login) {
+        # ... existing fields
+        myNewStat
+    }
+}
+"""
+
+# Extract in fetch_user_stats function
+stats["myNewStat"] = user_data.get("myNewStat", 0)
+```
+
+**Step 2: Update i18n.py**
+
+```python
+TRANSLATIONS = {
+    "en": {
+        # ... existing translations
+        "statcard_mynewstat": "My New Stat",
+    },
+}
+```
+
+**Step 3: Update stats_card.py**
+
+```python
+# In render_stats_card function
+all_stats = {
+    # ... existing stats
+    "myNewStat": {
+        "label": get_translation("statcard_mynewstat", config.locale),
+        "value": stats.get("myNewStat", 0),
+        "icon": get_icon("star"),  # Choose appropriate icon
+    },
+}
+```
+
+**Step 4: Add tests**
+
+```python
+# In tests/test_stats_card.py
+def test_render_with_new_stat():
+    from src.config import StatsCardConfig
+    from src.stats_card import render_stats_card
+    
+    stats = {"myNewStat": 100, "name": "Test User"}
+    config = StatsCardConfig(show=["myNewStat"])
+    
+    svg = render_stats_card(stats, config)
+    assert "My New Stat" in svg
+    assert "100" in svg
+```
 
 ### Adding a Translation
 
@@ -288,27 +355,80 @@ Include:
 Example:
 
 ```python
-def calculate_rank(
-    commits: int,
-    prs: int,
-    issues: int,
-    reviews: int,
-    stars: int,
-    followers: int,
-    all_commits: bool = False,
-) -> RankResult:
+from src.config import StatsCardConfig
+
+def render_stats_card(stats: dict[str, Any], config: StatsCardConfig) -> str:
     """
-    Calculate user rank based on GitHub statistics.
+    Render GitHub stats as an SVG card.
     
     Args:
-        commits: Total commit contributions
-        prs: Total pull requests
-        ...
+        stats: Dictionary containing user statistics from GitHub API
+        config: Configuration object with all rendering options
         
     Returns:
-        Dictionary with 'level' and 'percentile'
+        SVG string representing the stats card
+        
+    Raises:
+        RenderError: If rendering fails
     """
     # Implementation
+```
+
+### Configuration Objects
+
+All rendering functions use configuration objects instead of individual parameters:
+
+```python
+# ✅ New API (using config objects)
+from src.config import StatsCardConfig, LangsCardConfig
+from src.stats_card import render_stats_card
+from src.langs_card import render_top_languages
+
+stats_config = StatsCardConfig(theme="vue-dark", show_icons=True)
+svg = render_stats_card(stats, stats_config)
+
+langs_config = LangsCardConfig(layout="compact", langs_count=8)
+svg = render_top_languages(langs, langs_config)
+
+# ❌ Old API (deprecated - do not use)
+# svg = render_stats_card(stats, theme="vue-dark", show_icons=True, ...)
+```
+
+Key modules using configuration objects:
+- `src/config.py` - Defines StatsCardConfig, LangsCardConfig, FetchConfig, LangsFetchConfig
+- `src/stats_card.py` - render_stats_card(stats, config)
+- `src/langs_card.py` - render_top_languages(langs, config)
+- `src/cli.py` - Uses Config.from_cli_args() to create config objects
+
+### Constants
+
+Use named constants from `src/constants.py` instead of magic numbers:
+
+```python
+# ✅ Correct
+from src.constants import CARD_DEFAULT_WIDTH, ANIMATION_INITIAL_DELAY_MS
+
+width = CARD_DEFAULT_WIDTH
+delay = ANIMATION_INITIAL_DELAY_MS
+
+# ❌ Wrong
+width = 495  # magic number
+delay = 450  # magic number
+```
+
+### Exceptions
+
+Use the exception hierarchy from `src/exceptions.py`:
+
+```python
+from src.exceptions import APIError, ValidationError, RenderError
+
+# Raise specific exceptions
+if not token:
+    raise ValidationError("GitHub token is required")
+
+if response.status_code != 200:
+    raise APIError(f"GitHub API returned {response.status_code}")
 ```
 
 ### Testing
