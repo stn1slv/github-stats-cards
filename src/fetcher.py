@@ -1,7 +1,6 @@
 """GitHub API client for fetching user statistics."""
 
-import os
-from typing import Any, TypedDict, Union
+from typing import TypedDict, Union
 
 import requests
 
