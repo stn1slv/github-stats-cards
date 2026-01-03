@@ -387,6 +387,42 @@ jobs:
           git push
 ```
 
+### GitHub Enterprise Server Support
+
+This tool is compatible with GitHub Enterprise Server and other GitHub platforms. Use environment variables to configure custom API endpoints:
+
+**Environment Variables:**
+- `GITHUB_API_URL` - Custom REST API base URL (default: `https://api.github.com`)
+- `GITHUB_GRAPHQL_URL` - Custom GraphQL endpoint URL (default: `https://api.github.com/graphql`)
+
+**Usage Examples:**
+
+```bash
+# Using with GitHub Enterprise Server
+export GITHUB_API_URL="https://github.enterprise.com/api/v3"
+export GITHUB_GRAPHQL_URL="https://github.enterprise.com/api/graphql"
+export GITHUB_TOKEN=ghp_your_enterprise_token
+
+uv run github-stats-card stats -u your-username -o stats.svg
+```
+
+**In GitHub Actions:**
+
+```yaml
+- name: Generate GitHub Stats Card
+  uses: stn1slv/github-stats-card@main
+  env:
+    GITHUB_API_URL: https://github.enterprise.com/api/v3
+    GITHUB_GRAPHQL_URL: https://github.enterprise.com/api/graphql
+  with:
+    card-type: stats
+    username: your-username
+    token: ${{ secrets.GHE_TOKEN }}
+    output: stats.svg
+```
+
+**Note:** If only `GITHUB_API_URL` is set, the GraphQL endpoint will automatically be constructed as `${GITHUB_API_URL}/graphql`. You can override this by explicitly setting `GITHUB_GRAPHQL_URL`.
+
 Then add to your README:
 
 ```markdown

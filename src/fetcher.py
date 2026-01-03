@@ -5,7 +5,7 @@ from typing import Any, TypedDict, Union
 
 import requests
 
-from .constants import API_TIMEOUT, GRAPHQL_ENDPOINT
+from .constants import API_BASE_URL, API_TIMEOUT, GRAPHQL_ENDPOINT
 
 
 class UserStats(TypedDict):
@@ -264,7 +264,7 @@ def fetch_stats(
         # Use REST API to get all-time commit count
         try:
             search_response = requests.get(
-                f"https://api.github.com/search/commits?q=author:{username}",
+                f"{API_BASE_URL}/search/commits?q=author:{username}",
                 headers={
                     **headers,
                     "Accept": "application/vnd.github.cloak-preview+json",
@@ -282,7 +282,7 @@ def fetch_stats(
     total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
     try:
         issues_response = requests.get(
-            f"https://api.github.com/search/issues?q=author:{username}+type:issue",
+            f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue",
             headers=headers,
             timeout=API_TIMEOUT,
         )

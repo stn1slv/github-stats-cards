@@ -1,9 +1,15 @@
 """Constants for GitHub Stats Card rendering and configuration."""
 
+import os
+
 # API Configuration
-API_BASE_URL = "https://api.github.com"
+# Support GitHub Enterprise Server and other platforms via environment variables
+# Fallback to github.com if not set
+API_BASE_URL = os.environ.get("GITHUB_API_URL", "https://api.github.com")
+GRAPHQL_ENDPOINT = os.environ.get(
+    "GITHUB_GRAPHQL_URL", f"{API_BASE_URL}/graphql"
+)
 API_TIMEOUT = 30
-GRAPHQL_ENDPOINT = f"{API_BASE_URL}/graphql"
 
 # Card Dimensions
 CARD_PADDING = 25
