@@ -46,21 +46,21 @@ You can run the application directly without installing it using `uv run`:
 
 ```bash
 # Run as a Python module
-uv run python -m src.cli -u your-username -o stats.svg
+uv run python -m src.cli stats -u your-username -o stats.svg
 
 # Or using the shorter form
-uv run python -m src -u your-username -o stats.svg
+uv run python -m src stats -u your-username -o stats.svg
 ```
 
 **Important:** Don't forget to set your GitHub token:
 ```bash
 export GITHUB_TOKEN=ghp_your_token_here
-uv run python -m src.cli -u your-username -o stats.svg
+uv run python -m src.cli stats -u your-username -o stats.svg
 ```
 
 Or pass it directly:
 ```bash
-uv run python -m src.cli -u your-username -o stats.svg --token ghp_your_token_here
+uv run python -m src.cli stats -u your-username -o stats.svg --token ghp_your_token_here
 ```
 
 ## Quick Start
@@ -219,7 +219,7 @@ Here are some popular themes:
 - `nord` - Nord theme
 - `catppuccin_mocha` / `catppuccin_latte` - Catppuccin themes
 
-[See all 50+ themes](github_stats_card/themes.py)
+[See all 50+ themes](src/themes.py)
 
 ## GitHub Actions Integration
 
@@ -337,20 +337,20 @@ uv pip install -e ".[dev]"
 ### Run Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
 ### Code Formatting
 
 ```bash
 # Format code
-black github_stats_card tests
+uv run black src tests
 
 # Lint
-ruff check github_stats_card tests
+uv run ruff check src tests
 
 # Type check
-mypy github_stats_card
+uv run mypy src
 ```
 
 ## Programmatic Usage (Python API)
