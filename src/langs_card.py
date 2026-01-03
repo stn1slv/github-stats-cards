@@ -10,9 +10,11 @@ from .constants import (
     CARD_PADDING,
     DEFAULT_LANG_COLOR,
     DEFAULT_LANGS_CARD_WIDTH,
+    DEFAULT_LANGS_COMPACT_WIDTH,
     MAXIMUM_LANGS_COUNT,
     MIN_CARD_WIDTH,
     LANGS_COMPACT_COLUMN_WIDTH,
+    LANGS_COMPACT_COLUMN_WIDTH_WIDE,
     LANGS_COMPACT_ROW_HEIGHT,
     LANGS_DONUT_RADIUS,
     LANGS_PIE_RADIUS,
@@ -155,6 +157,8 @@ def render_compact_layout(
     """Render compact layout with stacked progress bar."""
     padding_right = 50
     offset_width = width - padding_right
+    # Use wider column width for 467px width layout
+    column_width = LANGS_COMPACT_COLUMN_WIDTH_WIDE if width >= 467 else LANGS_COMPACT_COLUMN_WIDTH
 
     # Progress bar (stacked colors)
     progress_bar = ""
@@ -215,7 +219,7 @@ def render_compact_layout(
     return f'''
     {progress_bar}
     <g transform="translate(0, {y_offset})">
-      <g transform="translate(0, 0)">{col1}</g><g transform="translate({LANGS_COMPACT_COLUMN_WIDTH}, 0)">{col2}</g>
+      <g transform="translate(0, 0)">{col1}</g><g transform="translate({column_width}, 0)">{col2}</g>
     </g>
   '''
 
@@ -392,8 +396,11 @@ def render_top_languages(
     # Trim and filter languages
     langs, total_size = trim_top_languages(top_langs, langs_count, config.hide)
 
-    # Card dimensions
-    width = config.card_width or DEFAULT_LANGS_CARD_WIDTH
+    # Card dimensions - use compact width for compact layout, otherwise default
+    if config.layout == "compact":
+        width = config.card_width or DEFAULT_LANGS_COMPACT_WIDTH
+    else:
+        width = config.card_width or DEFAULT_LANGS_CARD_WIDTH
     width = max(width, MIN_CARD_WIDTH)
 
     # Calculate height based on layout
