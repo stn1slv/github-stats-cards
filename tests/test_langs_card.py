@@ -28,8 +28,8 @@ def test_format_bytes():
 
 def test_get_display_value():
     """Test display value formatting."""
-    # Percentage format
-    assert get_display_value(1000, 45.67, "percentages") == "45.67%"
+    # Percentage format (1 decimal precision for cleaner display)
+    assert get_display_value(1000, 45.67, "percentages") == "45.7%"
 
     # Bytes format
     assert get_display_value(1024, 45.67, "bytes") == "1.0 KB"

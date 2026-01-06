@@ -84,6 +84,15 @@ def render_card(
             opacity: 1;
           }}
         }}
+        @media (prefers-reduced-motion: reduce) {{
+          .stagger {{
+            animation: none;
+            opacity: 1;
+          }}
+          .rank-text {{
+            animation: none;
+          }}
+        }}
         """
 
     # Get ring color for rank circle CSS
