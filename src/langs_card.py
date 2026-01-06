@@ -423,7 +423,7 @@ def render_top_languages(
 
     # Calculate height based on layout
     if config.layout == "compact" or config.hide_progress:
-        height = 80 + ((len(langs) + 1) // 2) * 25
+        height = 60 + ((len(langs) + 1) // 2) * 25
         if config.hide_progress:
             height -= 25
     elif config.layout == "donut":
