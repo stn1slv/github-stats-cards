@@ -248,7 +248,7 @@ get_commands_for_language() {
     
     case "$lang" in
         *"Python"*)
-            echo "cd src && pytest && ruff check ."
+            echo "uv run pytest && uv run black src tests && uv run ruff check src tests"
             ;;
         *"Rust"*)
             echo "cargo test && cargo clippy"

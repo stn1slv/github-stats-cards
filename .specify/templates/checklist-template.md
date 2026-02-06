@@ -6,10 +6,10 @@
 
 ## Code Quality Gates (Automated)
 
-- [ ] Run `ruff check .` (Linting)
-- [ ] Run `ruff format .` (Formatting)
-- [ ] Run `mypy .` (Strict Typing)
-- [ ] Run `pytest` (All tests pass)
+- [ ] Run `uv run ruff check src tests` (Linting)
+- [ ] Run `uv run black src tests` (Formatting)
+- [ ] Run `uv run mypy src` (Strict Typing)
+- [ ] Run `uv run pytest` (All tests pass)
 
 ## Feature Verification
 
