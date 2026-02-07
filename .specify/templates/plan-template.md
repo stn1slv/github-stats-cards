@@ -3,7 +3,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/speckit.plan` command. See `.gemini/commands/speckit.plan.toml` for the execution workflow.
 
 ## Summary
 
@@ -46,13 +46,23 @@ specs/[###-feature]/
 
 ```text
 src/
-├── cli.py               # Entry point & Command definition
-├── config.py            # Configuration Dataclasses
-├── card.py              # Base SVG Card Logic
-├── fetcher.py           # GitHub API Client
-├── stats_card.py        # Stats Card Logic
-├── langs_card.py        # Top Langs Card Logic
-└── themes.py            # Visual Themes
+├── core/                # Shared foundational logic
+│   ├── config.py        # Centralized configuration
+│   ├── constants.py     # Centralized constants
+│   ├── exceptions.py    # Custom exceptions
+│   └── utils.py         # General utility functions
+├── github/              # GitHub-specific integration
+│   ├── client.py        # Centralized REST/GraphQL client
+│   ├── fetcher.py       # Stats Card data fetcher
+│   └── langs_fetcher.py # Top Languages data fetcher
+├── rendering/           # SVG generation and visual logic
+│   ├── base.py          # Base SVG card renderer (shared)
+│   ├── colors.py        # Color parsing and utilities
+│   ├── icons.py         # SVG icons
+│   ├── langs.py         # Top Languages Card renderer
+│   ├── stats.py         # Stats Card renderer
+│   └── themes.py        # Theme definitions
+└── cli.py               # CLI orchestration
 
 tests/
 ├── test_cli.py          # Integration tests for commands
