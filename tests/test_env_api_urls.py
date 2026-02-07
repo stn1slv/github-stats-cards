@@ -74,9 +74,14 @@ def test_both_custom_env_vars():
 
 def test_fetcher_uses_api_base_url():
     """Test that fetcher module correctly imports and would use API_BASE_URL."""
-    from src.fetcher import API_BASE_URL
+    # Reset environment to ensure default values
+    with mock.patch.dict(os.environ, {}, clear=True):
+        import importlib
+        from src import constants, fetcher
 
-    # Should be imported from constants
-    from src.constants import API_BASE_URL as CONST_API_BASE_URL
+        # Reload both modules to pick up clean environment
+        importlib.reload(constants)
+        importlib.reload(fetcher)
 
-    assert API_BASE_URL == CONST_API_BASE_URL
+        # Now check that fetcher's API_BASE_URL matches constants
+        assert fetcher.API_BASE_URL == constants.API_BASE_URL
