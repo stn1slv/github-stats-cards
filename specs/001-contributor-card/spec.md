@@ -18,6 +18,11 @@
 - Q: Where should the owner avatar be placed relative to the repository name? → A: Option A - Left of name: Avatar icon appears to the left of the repository name.
 - Q: How should the repository name be displayed? → A: Option A - Owner/Repo: Show both owner and repository name (e.g., facebook/react).
 - Q: What should be the dimensions of the circular owner avatar? → A: Option A - 20px x 20px (Standard small icon)
+- Q: How should the repository owner avatars be included in the SVG? → A: Option A - Embedded Base64: Download the avatar and embed it directly in the SVG as a data URI.
+- Q: Should we impose a hard limit on how many avatars we attempt to download? → A: Option A - No Limit: Fetch avatars for all repositories up to the user-defined --limit.
+- Q: What should the system do if it fails to download the owner avatar for a specific repository? → A: Option A - Placeholder: Use a generic SVG icon placeholder for that repository.
+- Q: What should be the default width for the contributor card? → A: Option A - 467px (Matches standard stats card width).
+- Q: What should be the fixed height for each repository row in the list? → A: Option B - 30px (Standard)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -100,11 +105,13 @@ As a user, I want clear feedback if I have no contributions or if I request more
 - **FR-007**: The SVG MUST display the repository name in "owner/repo" format and its star count.
 - **FR-008**: The default card title MUST be "Top Contributions".
 - **FR-009**: System MUST fetch and display the repository owner's avatar as a visual indicator for each repository.
+- **FR-010**: Avatars MUST be embedded directly in the SVG as Base64-encoded Data URIs to ensure self-contained rendering.
+- **FR-011**: System MUST use a generic placeholder icon if an owner avatar fails to download.
 
 ### Visual/Output Requirements
-- **VR-001**: SVG MUST match the visual style (fonts, padding, border radius) of existing cards.
+- **VR-001**: SVG MUST match the visual style (fonts, padding, border radius) of existing cards, with a default width of 467px.
 - **VR-002**: Colors MUST respect the active theme.
-- **VR-003**: Layout MUST accommodate the list of repositories cleanly (e.g., rows with owner avatar on the left, followed by repo name, and stars on the right).
+- **VR-003**: Layout MUST accommodate the list of repositories cleanly, using a standard row height of 30px (e.g., rows with owner avatar on the left, followed by repo name, and stars on the right).
 - **VR-004**: Owner avatars MUST be rendered as circular images with dimensions of 20px x 20px.
 
 ## Success Criteria *(mandatory)*
