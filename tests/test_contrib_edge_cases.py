@@ -91,7 +91,7 @@ def test_fetch_all_excluded(mock_client):
     config = ContribFetchConfig(
         username="user", 
         token="token", 
-        exclude_repos=["owner/repo1"]
+        exclude_repo=["owner/repo1"]
     )
     stats = fetch_contributor_stats(config)
 

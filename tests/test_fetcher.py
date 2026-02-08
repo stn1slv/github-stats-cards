@@ -168,7 +168,28 @@ def test_fetch_contributor_stats_exclude(mock_client):
         username="user", 
         token="token", 
         limit=5, 
-        exclude_repos=["owner/skip"]
+        exclude_repo=["owner/skip"]
+    )
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 1
+    assert stats["repos"][0]["name"] == "owner/keep"
+
+
+def test_fetch_contributor_stats_exclude_wildcard(mock_client):
+    """Test wildcard repository exclusion."""
+    repos = [
+        {"nameWithOwner": "owner/keep", "isPrivate": False, "stargazers": {"totalCount": 100}, "owner": {"avatarUrl": "url", "login": "owner"}},
+        {"nameWithOwner": "awesome-app-1", "isPrivate": False, "stargazers": {"totalCount": 100}, "owner": {"avatarUrl": "url", "login": "other"}},
+        {"nameWithOwner": "awesome-app-2", "isPrivate": False, "stargazers": {"totalCount": 100}, "owner": {"avatarUrl": "url", "login": "other"}}
+    ]
+    setup_mock_response(mock_client, repos)
+
+    config = ContribFetchConfig(
+        username="user", 
+        token="token", 
+        limit=5, 
+        exclude_repo=["awesome-*"]
     )
     stats = fetch_contributor_stats(config)
 

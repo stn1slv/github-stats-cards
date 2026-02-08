@@ -9,7 +9,7 @@ class TestContribCardConfig:
         """Test default values for ContribCardConfig."""
         config = ContribCardConfig()
         assert config.limit == 10
-        assert config.exclude_repos == []
+        assert config.exclude_repo == []
         assert config.theme == "default"
         assert config.card_width == 467
         assert config.border_radius == 4.5
@@ -21,13 +21,13 @@ class TestContribCardConfig:
         """Test creating config from CLI arguments."""
         config = ContribCardConfig.from_cli_args(
             limit=5,
-            exclude_repos="owner/repo1,owner/repo2",
+            exclude_repo="owner/repo1,owner/repo2",
             theme="dark",
             hide_border=True,
             card_width=500
         )
         assert config.limit == 5
-        assert config.exclude_repos == ["owner/repo1", "owner/repo2"]
+        assert config.exclude_repo == ["owner/repo1", "owner/repo2"]
         assert config.theme == "dark"
         assert config.hide_border is True
         assert config.card_width == 500
@@ -54,12 +54,12 @@ class TestContribFetchConfig:
             username="testuser",
             token="testtoken",
             limit=20,
-            exclude_repos=["repo1"]
+            exclude_repo=["repo1"]
         )
         assert config.username == "testuser"
         assert config.token == "testtoken"
         assert config.limit == 20
-        assert config.exclude_repos == ["repo1"]
+        assert config.exclude_repo == ["repo1"]
 
     def test_cli_args_parsing(self):
         """Test creating fetch config from CLI arguments."""
@@ -67,9 +67,9 @@ class TestContribFetchConfig:
             username="testuser",
             token="testtoken",
             limit=5,
-            exclude_repos="repo1,repo2"
+            exclude_repo="repo1,repo2"
         )
         assert config.username == "testuser"
         assert config.token == "testtoken"
         assert config.limit == 5
-        assert config.exclude_repos == ["repo1", "repo2"]
+        assert config.exclude_repo == ["repo1", "repo2"]

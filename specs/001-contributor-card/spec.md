@@ -23,6 +23,7 @@
 - Q: What should the system do if it fails to download the owner avatar for a specific repository? → A: Option A - Placeholder: Use a generic SVG icon placeholder for that repository.
 - Q: What should be the default width for the contributor card? → A: Option A - 467px (Matches standard stats card width).
 - Q: What should be the fixed height for each repository row in the list? → A: Option B - 30px (Standard)
+- Q: How should repository exclusion work? → A: Support wildcard (*) patterns and case-insensitive matching. If no owner is specified (e.g., "awesome-*"), match against repository name only.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -37,7 +38,7 @@ As a GitHub user, I want to generate a card showing the most popular repositorie
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid GitHub username and token, **When** `uv run github-stats-card contrib -u <username> -o contrib.svg`, **Then** a file `contrib.svg` is created containing a list of repositories not owned by the user, sorted by star count, and displaying the user's rank level for each.
+1. **Given** a valid GitHub username and token, **When** `uv run github-stats-card contrib -u <username> -o contrib.svg`, **Then** a file `contrib.svg` is created containing a list of repositories (displaying repository name only, without owner) not owned by the user, sorted by star count, and displaying the user's rank level for each.
 2. **Given** an invalid token, **When** the command is run, **Then** an authentication error is displayed.
 
 ---

@@ -159,7 +159,7 @@ class ContribCardConfig(BaseConfig):
     
     # Display options
     limit: int = 10
-    exclude_repos: list[str] = field(default_factory=list)
+    exclude_repo: list[str] = field(default_factory=list)
     custom_title: str | None = None
     
     # Animation options
@@ -173,4 +173,4 @@ class ContribFetchConfig(BaseConfig):
     username: str
     token: str
     limit: int = 10
-    exclude_repos: list[str] = field(default_factory=list)
+    exclude_repo: list[str] = field(default_factory=list)

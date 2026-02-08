@@ -8,6 +8,7 @@ import base64
 from ..core.constants import API_BASE_URL
 from ..core.config import ContribFetchConfig
 from ..core.exceptions import FetchError
+from ..core.utils import is_repo_excluded
 from .client import GitHubClient
 from .rank import calculate_rank
 
@@ -513,7 +514,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         final_repos_data.append(repo_data)
 
     # Filter excluded repos
-    final_repos_data = [r for r in final_repos_data if r["name"] not in config.exclude_repos]
+    final_repos_data = [r for r in final_repos_data if not is_repo_excluded(r["name"], config.exclude_repo)]
 
     # Sort by stars descending (or maybe by rank? the user said "top X ... based on score (stars amount)")
     # We'll keep sorting by stars as per original requirement, but display the rank level.

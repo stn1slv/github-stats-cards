@@ -6,6 +6,7 @@ import requests  # type: ignore
 
 from ..core.constants import DEFAULT_LANG_COLOR
 from ..core.exceptions import LanguageFetchError
+from ..core.utils import is_repo_excluded
 from .client import GitHubClient
 
 
@@ -86,8 +87,7 @@ def fetch_top_languages(
     repos = user_data.get("repositories", {}).get("nodes", [])
 
     # Filter out excluded repositories
-    repos_to_hide = set(exclude_repo)
-    repos = [r for r in repos if r.get("name") not in repos_to_hide]
+    repos = [r for r in repos if not is_repo_excluded(r.get("name", ""), exclude_repo)]
 
     # Aggregate languages across all repositories
     languages: dict[str, Language] = {}

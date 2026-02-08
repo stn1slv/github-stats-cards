@@ -142,9 +142,9 @@ uv run github-stats-card contrib -u octocat -o contrib.svg
 # Top 5 contributions with dark theme
 uv run github-stats-card contrib -u octocat -o contrib.svg --theme vue-dark --limit 5
 
-# Exclude specific repositories
+# Exclude specific repositories or use wildcards
 uv run github-stats-card contrib -u octocat -o contrib.svg \
-  --exclude-repo "facebook/react,microsoft/vscode"
+  --exclude-repo "awesome-*,facebook/react"
 ```
 
 ### Advanced Options
@@ -176,6 +176,10 @@ uv run github-stats-card stats -u octocat -o stats.svg \
 # Exclude specific repositories
 uv run github-stats-card top-langs -u octocat -o top-langs.svg \
   --exclude-repo "repo1,repo2"
+
+# Exclude using wildcards or repo-only names
+uv run github-stats-card top-langs -u octocat -o top-langs.svg \
+  --exclude-repo "awesome-*,mule-*"
 
 # Use weighting presets
 uv run github-stats-card top-langs -u octocat -o top-langs.svg \
@@ -210,7 +214,7 @@ Run `uv run github-stats-card stats --help` or `uv run github-stats-card top-lan
 - Basic: username, token, output, theme
 - Display: hide-border, hide-title, hide-progress
 - Layout: layout (normal/compact/donut/donut-vertical/pie), card-width, border-radius
-- Languages: langs-count, hide (languages), exclude-repo
+- Languages: langs-count, hide (languages), exclude-repo (supports wildcards like "awesome-*")
 - Ranking: weighting (size-only/balanced/expertise/diversity), size-weight, count-weight
 - Colors: title-color, text-color, bg-color, border-color
 - Other: stats-format (percentages/bytes), custom-title, disable-animations
@@ -218,7 +222,7 @@ Run `uv run github-stats-card stats --help` or `uv run github-stats-card top-lan
 **Top Contributions Card Options:**
 - Basic: username, token, output, theme
 - Display: hide-border
-- Limits: limit (default: 10), exclude-repo
+- Limits: limit (default: 10), exclude-repo (supports wildcards and repo-only names)
 - Colors: title-color, text-color, bg-color, border-color
 - Other: custom-title, card-width, border-radius, disable-animations
 
