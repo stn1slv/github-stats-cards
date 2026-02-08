@@ -27,13 +27,14 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
     )
 
     # Calculate height based on number of repos
-    # Header (55) + items * 35 + padding (15)
+    # body_y_offset + items * 35 + padding (15)
+    body_y_offset = 25 if config.hide_title else 55
     item_height = 35
     num_items = len(stats["repos"])
     if num_items == 0:
-        height = 100
+        height = body_y_offset + 45
     else:
-        height = 55 + (num_items * item_height) + 15
+        height = body_y_offset + (num_items * item_height) + 15
 
     # Generate body content
     body = []
@@ -104,6 +105,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
         width=config.card_width,
         height=height,
         colors=colors,
+        hide_title=config.hide_title,
         hide_border=config.hide_border,
         border_radius=config.border_radius,
         disable_animations=config.disable_animations,

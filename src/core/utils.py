@@ -1,9 +1,8 @@
 """Utility functions for formatting and data manipulation."""
 
-from .constants import NUMBER_FORMAT_THOUSAND_DIVISOR
-
-
 import fnmatch
+
+from .constants import NUMBER_FORMAT_THOUSAND_DIVISOR
 
 
 def k_formatter(num: int, precision: int | None = None) -> str:

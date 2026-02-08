@@ -1,7 +1,7 @@
 """Tests for contributor stats fetcher."""
 
-import pytest
 from unittest.mock import patch
+import pytest
 from src.core.config import ContribFetchConfig
 from src.github.fetcher import fetch_contributor_stats
 from src.core.exceptions import FetchError
@@ -21,8 +21,10 @@ def mock_client():
             "totalCommits": 1000,
             "totalPRs": 100,
             "totalIssues": 50,
+            "totalStars": 500,
             "totalReviews": 20,
             "followers": 10,
+            "contributedTo": 5,
         }
 
         yield client_instance
@@ -209,6 +211,47 @@ def test_fetch_error(mock_client):
     config = ContribFetchConfig(username="user", token="token")
     with pytest.raises(FetchError, match="GraphQL error"):
         fetch_contributor_stats(config)
+
+
+def test_fetch_contributor_stats_partial_error(mock_client):
+    """Test that fetcher continues if one year fails with GraphQL errors."""
+    # 1. Years response (2 years)
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024, 2023]}}}}
+
+    # 2. 2024 response (errors)
+    error_response = {"errors": [{"message": "Some error"}]}
+
+    # 3. 2023 response (success)
+    success_response = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [
+                        {
+                            "repository": {
+                                "nameWithOwner": "owner/repo",
+                                "isPrivate": False,
+                                "stargazers": {"totalCount": 100},
+                                "owner": {"avatarUrl": "url", "login": "owner"},
+                            },
+                            "contributions": {"totalCount": 1},
+                        }
+                    ],
+                    "pullRequestContributionsByRepository": [],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    mock_client.graphql_query.side_effect = [years_response, error_response, success_response]
+
+    config = ContribFetchConfig(username="user", token="token", limit=5)
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 1
+    assert stats["repos"][0]["name"] == "owner/repo"
 
 
 def test_fetch_contributor_stats_deduplication(mock_client):

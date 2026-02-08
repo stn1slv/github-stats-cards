@@ -152,6 +152,7 @@ class ContribCardConfig(BaseConfig):
 
     # Visibility options
     hide_border: bool = False
+    hide_title: bool = False
 
     # Layout options
     card_width: int = 467

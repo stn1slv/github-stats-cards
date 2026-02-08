@@ -1,9 +1,8 @@
 """GitHub API client for fetching user statistics."""
 
-from typing import TypedDict, Any
-
-import requests  # type: ignore
 import base64
+import requests  # type: ignore
+from typing import TypedDict, Any
 
 from ..core.constants import API_BASE_URL
 from ..core.config import ContribFetchConfig
@@ -506,21 +505,22 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             # Continue to next year on error
             continue
 
+    # Calculate overall user rank once and reuse for all repositories
+    user_rank = calculate_rank(
+        commits=user_total_stats["totalCommits"],
+        prs=user_total_stats["totalPRs"],
+        issues=user_total_stats["totalIssues"],
+        reviews=user_total_stats["totalReviews"],
+        stars=user_total_stats["totalStars"],
+        followers=user_total_stats["followers"],
+        all_commits=True,
+    )
+
     # Calculate ranks for all repositories
     final_repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
-        # We use the user's total stats as a baseline, but the repo's stars
-        # This provides a more meaningful "Contribution Rank"
-        rank = calculate_rank(
-            commits=user_total_stats["totalCommits"],
-            prs=user_total_stats["totalPRs"],
-            issues=user_total_stats["totalIssues"],
-            reviews=user_total_stats["totalReviews"],
-            stars=repo_data["stars"],
-            followers=user_total_stats["followers"],
-            all_commits=True,
-        )
-        repo_data["rank_level"] = rank["level"]
+        # Use the overall user rank level for each contributed repository
+        repo_data["rank_level"] = user_rank["level"]
         final_repos_data.append(repo_data)
 
     # Filter excluded repos

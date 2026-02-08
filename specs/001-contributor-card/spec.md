@@ -3,7 +3,7 @@
 **Feature Branch**: `001-contributor-card`
 **Created**: 2026-02-07
 **Status**: Draft
-**Input**: User description: "I want to create a third card generation for contribution to expernal repos (not a user ones). I should show top X (default 10) repositories on which user contributed based on score (stars amount). The example of the layout is https://github.com/stn1slv/stn1slv/blob/main/img/github-contributor-dark.svg"
+**Input**: User description: "I want to create a third card generation for contribution to external repos (not a user ones). I should show top X (default 10) repositories on which user contributed based on score (stars amount). The example of the layout is https://github.com/stn1slv/stn1slv/blob/main/img/github-contributor-dark.svg"
 
 ## Clarifications
 

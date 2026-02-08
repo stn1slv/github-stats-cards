@@ -600,6 +600,11 @@ def top_langs(
     help="Hide card border",
 )
 @click.option(
+    "--hide-title",
+    is_flag=True,
+    help="Hide card title",
+)
+@click.option(
     "--card-width",
     type=int,
     help="Card width in pixels (default: 467)",
@@ -643,6 +648,7 @@ def contrib(
     exclude_repo: str,
     theme: str,
     hide_border: bool,
+    hide_title: bool,
     card_width: int | None,
     title_color: str | None,
     text_color: str | None,
@@ -692,6 +698,7 @@ def contrib(
             exclude_repo=exclude_repo,
             theme=theme,
             hide_border=hide_border,
+            hide_title=hide_title,
             card_width=card_width,
             title_color=title_color,
             text_color=text_color,
