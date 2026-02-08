@@ -5,7 +5,14 @@ import sys
 
 import click
 
-from .core.config import FetchConfig, LangsFetchConfig, LangsCardConfig, StatsCardConfig, ContribCardConfig, ContribFetchConfig
+from .core.config import (
+    FetchConfig,
+    LangsFetchConfig,
+    LangsCardConfig,
+    StatsCardConfig,
+    ContribCardConfig,
+    ContribFetchConfig,
+)
 from .core.exceptions import FetchError, LanguageFetchError
 from .github.fetcher import fetch_stats, fetch_contributor_stats
 from .github.langs_fetcher import fetch_top_languages
@@ -469,7 +476,7 @@ def top_langs(
         # Resolve weighting preset if specified
         final_size_weight = size_weight
         final_count_weight = count_weight
-        
+
         if weighting:
             preset = WEIGHTING_PRESETS[weighting]
             # Only use preset values if individual weights not specified
@@ -477,13 +484,13 @@ def top_langs(
                 final_size_weight = preset["size_weight"]
             if count_weight is None:
                 final_count_weight = preset["count_weight"]
-        
+
         # Apply defaults if still None
         if final_size_weight is None:
             final_size_weight = 1.0
         if final_count_weight is None:
             final_count_weight = 0.0
-        
+
         # Create fetch configuration
         fetch_config = LangsFetchConfig.from_cli_args(
             username=username,
@@ -506,9 +513,7 @@ def top_langs(
         if not top_languages:
             click.echo("⚠️  No languages found", err=True)
         else:
-            click.echo(
-                f"Found {len(top_languages)} languages across repositories", err=True
-            )
+            click.echo(f"Found {len(top_languages)} languages across repositories", err=True)
 
         # Create rendering configuration
         render_config = LangsCardConfig.from_cli_args(

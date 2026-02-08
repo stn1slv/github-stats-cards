@@ -24,7 +24,7 @@ class TestContribCardConfig:
             exclude_repo="owner/repo1,owner/repo2",
             theme="dark",
             hide_border=True,
-            card_width=500
+            card_width=500,
         )
         assert config.limit == 5
         assert config.exclude_repo == ["owner/repo1", "owner/repo2"]
@@ -34,10 +34,7 @@ class TestContribCardConfig:
 
     def test_none_values_ignored(self):
         """Test that None values in CLI args are ignored."""
-        config = ContribCardConfig.from_cli_args(
-            limit=None,
-            theme="dark"
-        )
+        config = ContribCardConfig.from_cli_args(limit=None, theme="dark")
         assert config.limit == 10  # Default value
         assert config.theme == "dark"
 
@@ -51,10 +48,7 @@ class TestContribFetchConfig:
     def test_initialization(self):
         """Test initializing ContribFetchConfig."""
         config = ContribFetchConfig(
-            username="testuser",
-            token="testtoken",
-            limit=20,
-            exclude_repo=["repo1"]
+            username="testuser", token="testtoken", limit=20, exclude_repo=["repo1"]
         )
         assert config.username == "testuser"
         assert config.token == "testtoken"
@@ -64,10 +58,7 @@ class TestContribFetchConfig:
     def test_cli_args_parsing(self):
         """Test creating fetch config from CLI arguments."""
         config = ContribFetchConfig.from_cli_args(
-            username="testuser",
-            token="testtoken",
-            limit=5,
-            exclude_repo="repo1,repo2"
+            username="testuser", token="testtoken", limit=5, exclude_repo="repo1,repo2"
         )
         assert config.username == "testuser"
         assert config.token == "testtoken"

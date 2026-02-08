@@ -16,14 +16,14 @@ def test_render_contrib_card_repo_name_only():
                 "issues": 2,
                 "reviews": 1,
                 "rank_level": "S",
-                "avatar_b64": "base64data"
+                "avatar_b64": "base64data",
             }
         ]
     }
     config = ContribCardConfig()
-    
+
     svg = render_contrib_card(stats, config)
-    
+
     assert ">react<" in svg
     assert ">facebook/react<" not in svg
 
@@ -33,31 +33,31 @@ def test_render_contrib_card_rank_display():
     stats = {
         "repos": [
             {
-                "name": "owner/repo1", 
-                "stars": 100, 
+                "name": "owner/repo1",
+                "stars": 100,
                 "commits": 10,
                 "prs": 5,
                 "issues": 2,
                 "reviews": 1,
                 "rank_level": "A+",
-                "avatar_b64": None
+                "avatar_b64": None,
             },
             {
-                "name": "owner/repo2", 
-                "stars": 50, 
+                "name": "owner/repo2",
+                "stars": 50,
                 "commits": 5,
                 "prs": 2,
                 "issues": 1,
                 "reviews": 0,
                 "rank_level": "B",
-                "avatar_b64": None
-            }
+                "avatar_b64": None,
+            },
         ]
     }
     config = ContribCardConfig()
-    
+
     svg = render_contrib_card(stats, config)
-    
+
     assert ">A+<" in svg
     assert ">B<" in svg
     # The star counts should NOT be present as text

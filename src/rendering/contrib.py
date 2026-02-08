@@ -1,6 +1,5 @@
 """Contributor card renderer."""
 
-
 from ..core.config import ContribCardConfig
 from ..core.utils import encode_html
 from ..github.fetcher import ContributorStats
@@ -38,7 +37,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
 
     # Generate body content
     body = []
-    
+
     if num_items == 0:
         text_color = colors["textColor"]
         body.append(
@@ -57,10 +56,10 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
 
         for i, repo in enumerate(stats["repos"]):
             y_pos = i * item_height
-            
+
             # Row group
             body.append(f'<g transform="translate(25, {y_pos})">')
-            
+
             # 1. Avatar (centered vertically: (35-20)/2 = 7.5)
             if repo["avatar_b64"]:
                 # Use embedded base64 image
@@ -85,10 +84,10 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             # 3. Rank Level (right aligned in a circle)
             right_edge = config.card_width - 75
             rank = repo["rank_level"]
-            
+
             # Use ring color from theme or fallback to title color
             ring_color = colors.get("ringColor", colors["titleColor"])
-            
+
             body.append(f"""
             <g transform="translate({right_edge}, 7.5)">
                 <circle cx="10" cy="10" r="12" stroke="{ring_color}" stroke-width="2" fill="none" opacity="0.2" />
@@ -96,7 +95,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
                       text-anchor="middle" class="stat bold" style="font-size: 10px;">{rank}</text>
             </g>
             """)
-            
+
             body.append("</g>")
 
     return render_card(
@@ -109,5 +108,5 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
         border_radius=config.border_radius,
         disable_animations=config.disable_animations,
         a11y_title="Top Contributions Card",
-        a11y_desc=f"List of top {num_items} repositories contributed to, sorted by stars."
+        a11y_desc=f"List of top {num_items} repositories contributed to, sorted by stars.",
     )

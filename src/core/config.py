@@ -156,12 +156,12 @@ class ContribCardConfig(BaseConfig):
     # Layout options
     card_width: int = 467
     border_radius: float = 4.5
-    
+
     # Display options
     limit: int = 10
     exclude_repo: list[str] = field(default_factory=list)
     custom_title: str | None = None
-    
+
     # Animation options
     disable_animations: bool = False
 

@@ -119,8 +119,6 @@ def fetch_top_languages(
         lang.size = int((lang.size**size_weight) * (lang.count**count_weight))
 
     # Sort by size descending
-    sorted_langs = dict(
-        sorted(languages.items(), key=lambda x: x[1].size, reverse=True)
-    )
+    sorted_langs = dict(sorted(languages.items(), key=lambda x: x[1].size, reverse=True))
 
     return sorted_langs

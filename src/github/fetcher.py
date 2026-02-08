@@ -269,7 +269,9 @@ def fetch_stats(
     # Use REST API to get accurate issue count (includes issues in repos user doesn't own)
     total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
     try:
-        issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue")
+        issues_data = client.rest_get(
+            f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue"
+        )
         total_issues = issues_data.get("total_count", total_issues)
     except requests.exceptions.RequestException:
         # If REST API fails, use GraphQL data
@@ -357,11 +359,11 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         data = client.graphql_query(years_query, {"login": config.username})
         if "errors" in data:
             raise FetchError(f"GraphQL error: {data['errors'][0].get('message')}")
-        
+
         user_data = data.get("data", {}).get("user")
         if not user_data:
             raise FetchError(f"User '{config.username}' not found")
-            
+
         years = user_data["contributionsCollection"]["contributionYears"]
     except requests.exceptions.RequestException as e:
         raise FetchError(f"Failed to fetch contribution years: {e}")
@@ -369,13 +371,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     # 3. Iterate over last 5 years to collect repositories
     # We limit to 5 years to balance performance vs accuracy
     target_years = sorted(years, reverse=True)[:5]
-    
+
     raw_repos_map: dict[str, dict[str, Any]] = {}
 
     for year in target_years:
         from_date = f"{year}-01-01T00:00:00Z"
         to_date = f"{year}-12-31T23:59:59Z"
-        
+
         col_query = """
         query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {
           user(login: $login) {
@@ -448,31 +450,29 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
           }
         }
         """
-        
+
         try:
-            c_data = client.graphql_query(col_query, {
-                "login": config.username, 
-                "from": from_date, 
-                "to": to_date
-            })
-            
+            c_data = client.graphql_query(
+                col_query, {"login": config.username, "from": from_date, "to": to_date}
+            )
+
             collection = c_data["data"]["user"]["contributionsCollection"]
-            
+
             # Helper to process a contribution list
             def process_list(items: list[dict[str, Any]], contrib_type: str) -> None:
                 for item in items:
                     repo = item["repository"]
                     name = repo["nameWithOwner"]
                     count = item["contributions"]["totalCount"]
-                    
+
                     # Filter private
                     if repo["isPrivate"]:
                         continue
-                        
+
                     # Filter user's own repos
                     if repo["owner"]["login"].lower() == config.username.lower():
                         continue
-                        
+
                     # Initialize or update repo data
                     if name not in raw_repos_map:
                         raw_repos_map[name] = {
@@ -482,16 +482,16 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                             "commits": 0,
                             "prs": 0,
                             "issues": 0,
-                            "reviews": 0
+                            "reviews": 0,
                         }
-                    
+
                     raw_repos_map[name][contrib_type] += count
 
             process_list(collection["commitContributionsByRepository"], "commits")
             process_list(collection["pullRequestContributionsByRepository"], "prs")
             process_list(collection["issueContributionsByRepository"], "issues")
             process_list(collection["pullRequestReviewContributionsByRepository"], "reviews")
-            
+
         except requests.exceptions.RequestException:
             # Continue to next year on error
             continue
@@ -508,20 +508,22 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             reviews=user_total_stats["totalReviews"],
             stars=repo_data["stars"],
             followers=user_total_stats["followers"],
-            all_commits=True
+            all_commits=True,
         )
         repo_data["rank_level"] = rank["level"]
         final_repos_data.append(repo_data)
 
     # Filter excluded repos
-    final_repos_data = [r for r in final_repos_data if not is_repo_excluded(r["name"], config.exclude_repo)]
+    final_repos_data = [
+        r for r in final_repos_data if not is_repo_excluded(r["name"], config.exclude_repo)
+    ]
 
     # Sort by stars descending (or maybe by rank? the user said "top X ... based on score (stars amount)")
     # We'll keep sorting by stars as per original requirement, but display the rank level.
     final_repos_data.sort(key=lambda r: r["stars"], reverse=True)
 
     # Limit results
-    final_repos_data = final_repos_data[:config.limit]
+    final_repos_data = final_repos_data[: config.limit]
 
     # Fetch avatars
     final_repos: list[ContributorRepo] = []
@@ -532,15 +534,17 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             if image_data:
                 avatar_b64 = base64.b64encode(image_data).decode("utf-8")
 
-        final_repos.append({
-            "name": repo["name"],
-            "stars": repo["stars"],
-            "commits": repo["commits"],
-            "prs": repo["prs"],
-            "issues": repo["issues"],
-            "reviews": repo["reviews"],
-            "rank_level": repo["rank_level"],
-            "avatar_b64": avatar_b64
-        })
+        final_repos.append(
+            {
+                "name": repo["name"],
+                "stars": repo["stars"],
+                "commits": repo["commits"],
+                "prs": repo["prs"],
+                "issues": repo["issues"],
+                "reviews": repo["reviews"],
+                "rank_level": repo["rank_level"],
+                "avatar_b64": avatar_b64,
+            }
+        )
 
     return {"repos": final_repos}
