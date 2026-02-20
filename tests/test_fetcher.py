@@ -94,10 +94,18 @@ def test_fetch_contributor_stats_success(mock_client):
     assert stats["repos"][0]["name"] == "owner/repo1"
     assert stats["repos"][0]["stars"] == 100
     assert stats["repos"][0]["commits"] == 10
-    assert "rank_level" in stats["repos"][0]
+    # B tier (>100 stars) doesn't apply (>=100 is B), wait. 100 is >10 (C).
+    # 10 commits / 1 year = 10 (Neutral) -> No modifier.
+    # Stars=100 -> Check thresholds: >100 is B. 100 is not >100. So it's C (>10).
+    # Expected: "C"
+    # Actually logic: >100 is B. So 100 is C.
+    assert stats["repos"][0]["rank_level"] == "C"
+
     assert stats["repos"][1]["name"] == "owner/repo2"
     assert stats["repos"][1]["stars"] == 50
     assert stats["repos"][1]["commits"] == 5
+    # Stars=50 -> C. Rate=5 -> Neutral -> "C".
+    assert stats["repos"][1]["rank_level"] == "C"
 
 
 def test_fetch_contributor_stats_sorting(mock_client):
@@ -295,3 +303,74 @@ def test_fetch_contributor_stats_deduplication(mock_client):
     assert stats["repos"][0]["name"] == "owner/repo"
     assert stats["repos"][0]["commits"] == 1
     assert stats["repos"][0]["prs"] == 1
+
+
+def test_fetch_contributor_stats_rank_calculation(mock_client):
+    """Test rank calculation with multi-year data."""
+    # 1. Years response (2 years)
+    years_response = {
+        "data": {"user": {"contributionsCollection": {"contributionYears": [2024, 2023]}}}
+    }
+
+    # Repo S: S tier stars (>10k), 100 commits in 2024 (High rate) -> S+
+    repo_s = {
+        "nameWithOwner": "owner/repo-s",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 10001},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+    }
+
+    # Repo A: A tier stars (>1k), 2 commits in 2024 (Low rate) -> A-
+    repo_a = {
+        "nameWithOwner": "owner/repo-a",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 1001},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+    }
+
+    # 2. 2024 response
+    response_2024 = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [
+                        {"repository": repo_s, "contributions": {"totalCount": 100}},
+                        {"repository": repo_a, "contributions": {"totalCount": 2}},
+                    ],
+                    "pullRequestContributionsByRepository": [],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    # 3. 2023 response (empty)
+    response_2023 = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [],
+                    "pullRequestContributionsByRepository": [],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    mock_client.graphql_query.side_effect = [years_response, response_2024, response_2023]
+
+    config = ContribFetchConfig(username="user", token="token", limit=5)
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 2
+    
+    # Check Repo S
+    s_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-s")
+    assert s_repo["rank_level"] == "S+" # 100 commits / 1 year = 100 (>50)
+
+    # Check Repo A
+    a_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-a")
+    assert a_repo["rank_level"] == "A-" # 2 commits / 1 year = 2 (<5)
+

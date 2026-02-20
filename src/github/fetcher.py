@@ -9,7 +9,7 @@ from ..core.config import ContribFetchConfig
 from ..core.exceptions import FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
-from .rank import calculate_rank
+from .rank import calculate_rank, calculate_repo_rank
 
 
 class ContributorRepo(TypedDict):
@@ -337,14 +337,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     """
     client = GitHubClient(config.token)
 
-    # 1. Get total user stats as a baseline for rank
-    # We use fetch_stats to get overall activity (commits, prs, issues, reviews, followers)
-    try:
-        user_total_stats = fetch_stats(config.username, config.token, include_all_commits=True)
-    except Exception as e:
-        raise FetchError(f"Failed to fetch user baseline stats: {e}")
-
-    # 2. Get contribution years to iterate over
+    # 1. Get contribution years to iterate over
     years_query = """
     query userYears($login: String!) {
       user(login: $login) {
@@ -367,11 +360,12 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     except requests.exceptions.RequestException as e:
         raise FetchError(f"Failed to fetch contribution years: {e}")
 
-    # 3. Iterate over last 5 years to collect repositories
+    # 2. Iterate over last 5 years to collect repositories
     # We limit to 5 years to balance performance vs accuracy
     target_years = sorted(years, reverse=True)[:5]
 
     raw_repos_map: dict[str, dict[str, Any]] = {}
+    active_years_map: dict[str, set[int]] = {}
 
     for year in target_years:
         from_date = f"{year}-01-01T00:00:00Z"
@@ -474,6 +468,9 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                     name = repo["nameWithOwner"]
                     count = item["contributions"]["totalCount"]
 
+                    if count == 0:
+                        continue
+
                     # Filter private
                     if repo["isPrivate"]:
                         continue
@@ -493,8 +490,10 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                             "issues": 0,
                             "reviews": 0,
                         }
+                        active_years_map[name] = set()
 
                     raw_repos_map[name][contrib_type] += count
+                    active_years_map[name].add(year)
 
             process_list(collection["commitContributionsByRepository"], "commits")
             process_list(collection["pullRequestContributionsByRepository"], "prs")
@@ -505,22 +504,21 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             # Continue to next year on error
             continue
 
-    # Calculate overall user rank once and reuse for all repositories
-    user_rank = calculate_rank(
-        commits=user_total_stats["totalCommits"],
-        prs=user_total_stats["totalPRs"],
-        issues=user_total_stats["totalIssues"],
-        reviews=user_total_stats["totalReviews"],
-        stars=user_total_stats["totalStars"],
-        followers=user_total_stats["followers"],
-        all_commits=True,
-    )
-
     # Calculate ranks for all repositories
     final_repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
-        # Use the overall user rank level for each contributed repository
-        repo_data["rank_level"] = user_rank["level"]
+        name = repo_data["name"]
+        years_active = len(active_years_map.get(name, set()))
+        total_contribs = (
+            repo_data["commits"]
+            + repo_data["prs"]
+            + repo_data["issues"]
+            + repo_data["reviews"]
+        )
+
+        repo_data["rank_level"] = calculate_repo_rank(
+            repo_data["stars"], total_contribs, years_active
+        )
         final_repos_data.append(repo_data)
 
     # Filter excluded repos
@@ -558,3 +556,4 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         )
 
     return {"repos": final_repos}
+

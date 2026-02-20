@@ -1,6 +1,103 @@
 """Tests for rank calculation algorithm."""
 
-from src.github.rank import calculate_rank, exponential_cdf, log_normal_cdf
+from src.github.rank import (
+    calculate_rank,
+    calculate_repo_rank,
+    exponential_cdf,
+    log_normal_cdf,
+)
+
+
+def test_exponential_cdf():
+    assert exponential_cdf(0) == 0
+    assert exponential_cdf(1) == 0.5
+    assert exponential_cdf(2) == 0.75
+
+
+def test_log_normal_cdf():
+    assert log_normal_cdf(0) == 0
+    assert log_normal_cdf(1) == 0.5
+    assert log_normal_cdf(9) == 0.9
+
+
+def test_calculate_rank_s_tier():
+    # Extremely high stats to ensure S tier (percentile <= 1.0)
+    # Using 100k for most stats to ensure CDF approaches 1.0
+    result = calculate_rank(100000, 10000, 10000, 10000, 100000, 10000)
+    assert result["level"] == "S"
+    assert result["percentile"] <= 1.0
+
+
+def test_calculate_rank_a_tier():
+    # Good stats
+    result = calculate_rank(1000, 100, 50, 20, 100, 50)
+    assert result["level"] in ["S", "A+", "A"]
+
+
+def test_calculate_rank_c_tier():
+    # Low stats
+    result = calculate_rank(10, 1, 1, 0, 0, 0)
+    assert result["level"] in ["C+", "C"]
+
+
+def test_calculate_rank_with_all_commits():
+    # Same stats, but one is all-time commits (median is higher)
+    res1 = calculate_rank(1000, 50, 25, 2, 50, 10, all_commits=False)
+    res2 = calculate_rank(1000, 50, 25, 2, 50, 10, all_commits=True)
+
+    # res2 should have a higher (worse) percentile because 1000 commits
+    # is less impressive when compared to all-time median (1000)
+    # than when compared to current year median (250)
+    assert res2["percentile"] > res1["percentile"]
+
+
+def test_rank_percentile_range():
+    # Test extreme cases
+    res_best = calculate_rank(1000000, 100000, 100000, 10000, 100000, 100000)
+    res_worst = calculate_rank(0, 0, 0, 0, 0, 0)
+
+    assert 0 <= res_best["percentile"] <= 100
+    assert 0 <= res_worst["percentile"] <= 100
+    assert res_best["percentile"] < res_worst["percentile"]
+
+
+def test_calculate_repo_rank():
+    # S tier (>10000 stars)
+    # Rate = 100/1 = 100 (>50) -> "+"
+    assert calculate_repo_rank(10001, 100, 1) == "S+"
+    # Rate = 10/1 = 10 (neutral) -> ""
+    assert calculate_repo_rank(10001, 10, 1) == "S"
+    # Rate = 4/1 = 4 (<5) -> "-"
+    assert calculate_repo_rank(10001, 4, 1) == "S-"
+
+    # A tier (>1000 stars)
+    assert calculate_repo_rank(1001, 100, 1) == "A+"
+    assert calculate_repo_rank(1001, 10, 1) == "A"
+    assert calculate_repo_rank(1001, 4, 1) == "A-"
+
+    # B tier (>100 stars)
+    assert calculate_repo_rank(101, 100, 1) == "B+"
+
+    # C tier (>10 stars)
+    assert calculate_repo_rank(11, 100, 1) == "C+"
+
+    # D tier (<=10 stars)
+    assert calculate_repo_rank(10, 100, 1) == "D+"
+    assert calculate_repo_rank(1, 100, 1) == "D+"
+    assert calculate_repo_rank(0, 100, 1) == "D+"
+
+    # Active years scaling
+    # 200 contribs over 5 years = 40/year (neutral)
+    assert calculate_repo_rank(10001, 200, 5) == "S"
+    # 200 contribs over 2 years = 100/year (high)
+    assert calculate_repo_rank(10001, 200, 2) == "S+"
+
+    # Edge cases
+    # 0 active years (should handle division by zero/max(1))
+    assert calculate_repo_rank(10001, 100, 0) == "S+"
+    # 0 contributions
+    assert calculate_repo_rank(10001, 0, 1) == "S-"
+
 
 
 def test_exponential_cdf():

@@ -118,3 +118,40 @@ def calculate_rank(
             break
 
     return {"level": level, "percentile": percentile}
+
+
+def calculate_repo_rank(stars: int, total_contribs: int, years_active: int) -> str:
+    """
+    Calculate rank for a single repository contribution.
+
+    Args:
+        stars: Repository star count
+        total_contribs: Sum of user's commits, PRs, issues, reviews
+        years_active: Count of years with >0 contributions (1-5)
+
+    Returns:
+        Rank string (e.g., "S", "A+", "B-")
+    """
+    # 1. Determine base rank from stars
+    if stars > 10000:
+        base_rank = "S"
+    elif stars > 1000:
+        base_rank = "A"
+    elif stars > 100:
+        base_rank = "B"
+    elif stars > 10:
+        base_rank = "C"
+    else:
+        base_rank = "D"
+
+    # 2. Calculate annual contribution rate
+    annual_rate = total_contribs / max(1, years_active)
+
+    # 3. Apply modifiers
+    modifier = ""
+    if annual_rate >= 50:
+        modifier = "+"
+    elif annual_rate < 5:
+        modifier = "-"
+
+    return f"{base_rank}{modifier}"
