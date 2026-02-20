@@ -365,12 +365,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     target_years = sorted(years, reverse=True)[:5]
 
     raw_repos_map: dict[str, dict[str, Any]] = {}
-    active_years_map: dict[str, set[int]] = {}
 
     for year in target_years:
         from_date = f"{year}-01-01T00:00:00Z"
         to_date = f"{year}-12-31T23:59:59Z"
 
+        # Note: We fetch total commit count (history) only in commitContributions
+        # to avoid complexity. It serves as a proxy for repo size.
         col_query = """
         query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {
           user(login: $login) {
@@ -385,6 +386,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   }
                   stargazers {
                     totalCount
+                  }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
                   }
                 }
                 contributions {
@@ -481,6 +489,12 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
 
                     # Initialize or update repo data
                     if name not in raw_repos_map:
+                        # Extract repo total commits if available (only in commitContributions)
+                        total_repo_commits = 0
+                        obj = repo.get("object")
+                        if obj and "history" in obj:
+                            total_repo_commits = obj["history"]["totalCount"]
+
                         raw_repos_map[name] = {
                             "name": name,
                             "stars": repo["stargazers"]["totalCount"],
@@ -489,11 +503,19 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                             "prs": 0,
                             "issues": 0,
                             "reviews": 0,
+                            "total_repo_commits": total_repo_commits,
                         }
-                        active_years_map[name] = set()
+                    else:
+                        # Update total_repo_commits if we found it now but didn't have it before
+                        # (e.g. first found via PRs, now via Commits)
+                        if raw_repos_map[name]["total_repo_commits"] == 0:
+                            obj = repo.get("object")
+                            if obj and "history" in obj:
+                                raw_repos_map[name]["total_repo_commits"] = obj["history"][
+                                    "totalCount"
+                                ]
 
                     raw_repos_map[name][contrib_type] += count
-                    active_years_map[name].add(year)
 
             process_list(collection["commitContributionsByRepository"], "commits")
             process_list(collection["pullRequestContributionsByRepository"], "prs")
@@ -507,17 +529,8 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     # Calculate ranks for all repositories
     final_repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
-        name = repo_data["name"]
-        years_active = len(active_years_map.get(name, set()))
-        total_contribs = (
-            repo_data["commits"]
-            + repo_data["prs"]
-            + repo_data["issues"]
-            + repo_data["reviews"]
-        )
-
         repo_data["rank_level"] = calculate_repo_rank(
-            repo_data["stars"], total_contribs, years_active
+            repo_data["stars"], repo_data["total_repo_commits"]
         )
         final_repos_data.append(repo_data)
 
@@ -556,4 +569,5 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         )
 
     return {"repos": final_repos}
+
 

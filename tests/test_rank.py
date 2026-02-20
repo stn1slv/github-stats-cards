@@ -63,40 +63,32 @@ def test_rank_percentile_range():
 
 def test_calculate_repo_rank():
     # S tier (>10000 stars)
-    # Rate = 100/1 = 100 (>50) -> "+"
-    assert calculate_repo_rank(10001, 100, 1) == "S+"
-    # Rate = 10/1 = 10 (neutral) -> ""
-    assert calculate_repo_rank(10001, 10, 1) == "S"
-    # Rate = 4/1 = 4 (<5) -> "-"
-    assert calculate_repo_rank(10001, 4, 1) == "S-"
+    # > 5000 commits -> "+"
+    assert calculate_repo_rank(10001, 5001) == "S+"
+    # 1000 commits (neutral) -> ""
+    assert calculate_repo_rank(10001, 1000) == "S"
+    # 50 commits (<100) -> "-"
+    assert calculate_repo_rank(10001, 50) == "S-"
 
     # A tier (>1000 stars)
-    assert calculate_repo_rank(1001, 100, 1) == "A+"
-    assert calculate_repo_rank(1001, 10, 1) == "A"
-    assert calculate_repo_rank(1001, 4, 1) == "A-"
+    assert calculate_repo_rank(1001, 6000) == "A+"
+    assert calculate_repo_rank(1001, 200) == "A"
+    assert calculate_repo_rank(1001, 10) == "A-"
 
     # B tier (>100 stars)
-    assert calculate_repo_rank(101, 100, 1) == "B+"
+    assert calculate_repo_rank(101, 6000) == "B+"
 
     # C tier (>10 stars)
-    assert calculate_repo_rank(11, 100, 1) == "C+"
+    assert calculate_repo_rank(11, 6000) == "C+"
 
     # D tier (<=10 stars)
-    assert calculate_repo_rank(10, 100, 1) == "D+"
-    assert calculate_repo_rank(1, 100, 1) == "D+"
-    assert calculate_repo_rank(0, 100, 1) == "D+"
-
-    # Active years scaling
-    # 200 contribs over 5 years = 40/year (neutral)
-    assert calculate_repo_rank(10001, 200, 5) == "S"
-    # 200 contribs over 2 years = 100/year (high)
-    assert calculate_repo_rank(10001, 200, 2) == "S+"
+    assert calculate_repo_rank(10, 6000) == "D+"
+    assert calculate_repo_rank(1, 6000) == "D+"
+    assert calculate_repo_rank(0, 6000) == "D+"
 
     # Edge cases
-    # 0 active years (should handle division by zero/max(1))
-    assert calculate_repo_rank(10001, 100, 0) == "S+"
-    # 0 contributions
-    assert calculate_repo_rank(10001, 0, 1) == "S-"
+    # 0 commits
+    assert calculate_repo_rank(10001, 0) == "S-"
 
 
 
