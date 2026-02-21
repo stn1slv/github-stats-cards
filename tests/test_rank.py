@@ -67,7 +67,7 @@ def test_calculate_repo_rank():
     assert calculate_repo_rank(10001, 5001) == "S+"
     # 1000 commits (neutral) -> ""
     assert calculate_repo_rank(10001, 1000) == "S"
-    # 50 commits (<100) -> "-"
+    # 50 commits (1-99 range) -> "-"
     assert calculate_repo_rank(10001, 50) == "S-"
 
     # Boundary: 10000 stars (Should be A, as tier is >10000)
@@ -93,16 +93,16 @@ def test_calculate_repo_rank():
     # Boundary: 10 stars (Should be D)
     assert calculate_repo_rank(10, 6000) == "D+"
 
-    # D tier (<=10 stars)
+    # D tier (0-10 stars)
     assert calculate_repo_rank(1, 6000) == "D+"
     assert calculate_repo_rank(0, 6000) == "D+"
 
     # Commit Modifier Boundaries
-    # 5000 commits should be neutral (no modifier)
+    # 5000 commits is the upper neutral boundary (no modifier, "+" starts at > 5000)
     assert calculate_repo_rank(10001, 5000) == "S"
-    # 100 commits should be neutral (no modifier)
+    # 100 commits is the lower neutral boundary (no modifier, "-" starts at < 100)
     assert calculate_repo_rank(10001, 100) == "S"
 
     # Edge cases
-    # 0 commits
-    assert calculate_repo_rank(10001, 0) == "S-"
+    # 0 commits: Unknown magnitude, treat as neutral (no modifier)
+    assert calculate_repo_rank(10001, 0) == "S"

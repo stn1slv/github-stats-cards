@@ -62,7 +62,7 @@ As a user, I want my main stats card to continue using the existing ranking algo
     - **B Tier**: 101 - 1,000 Stars
     - **C Tier**: 11 - 100 Stars
     - **D Tier**: 0 - 10 Stars
-    - (Example: A repository like `debezium/debezium` with >12,000 stars must receive an **S** rank).
+    - (Example: A repository like `debezium/debezium` with >12,000 stars and >11,000 commits must receive an **S+** rank).
 - **FR-005**: The system MUST NOT apply the user's global rank to individual repositories in the `contrib` card.
 
 #### Stats Card Ranking Logic

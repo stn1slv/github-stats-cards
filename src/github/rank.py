@@ -144,10 +144,11 @@ def calculate_repo_rank(stars: int, total_repo_commits: int) -> str:
         base_rank = "D"
 
     # 2. Apply modifiers based on repo magnitude (total commits)
+    # If magnitude is 0 (unknown or empty), we treat it as neutral to avoid unfair downgrades.
     modifier = ""
     if total_repo_commits > 5000:
         modifier = "+"
-    elif total_repo_commits < 100:
+    elif 0 < total_repo_commits < 100:
         modifier = "-"
 
     return f"{base_rank}{modifier}"

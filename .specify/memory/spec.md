@@ -75,8 +75,8 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
     - `D`: 0 - 10 stars.
   - **Modifier:** Determined by Repository Total Commits (Project Magnitude).
     - `+`: Large/Mature (>5k commits).
-    - `-`: Small/New (<100 commits).
-    - (None): Medium (100-5k commits).
+    - `-`: Small/New Project (1-99 commits).
+    - (None): Medium Project (100-5k commits) OR Unknown Magnitude (0 commits).
 
 ## Non-Functional Requirements
 - **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck).

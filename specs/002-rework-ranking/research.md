@@ -1,60 +1,48 @@
 # Research: Rework Ranking Calculation
 
 **Feature**: Rework Ranking Calculation
-**Status**: In Progress
+**Status**: Completed
 
-## 1. Data Availability for "Contribution Rate"
+## 1. Project Magnitude Logic (Revised)
 
-**Requirement**: Calculate rank modifier based on "Contribution Rate (Total / Distinct Active Months)".
-**Current Implementation**: The fetcher iterates through the last 5 years, making one GraphQL query per year to `contributionsCollection`. This yields `totalCount` of contributions per repository for that year.
-**Constraint**: GitHub GraphQL API does not provide a "monthly breakdown per repository" in a single query. Getting true "Distinct Active Months" would require querying *each month* individually (5 years * 12 months = 60 queries), which violates performance goals.
+**Requirement**: Calculate rank modifier based on "Project Magnitude" rather than individual contribution intensity.
+**Decision**: Use **Repository Total Commits** as the proxy for magnitude. This ensures that contributing to large, established projects (like Debezium or Linux) highlights the impact of the contribution, regardless of the user's total commits to that specific repo.
 
-**Findings**:
-- We can easily track **Distinct Active Years** (count of years where `totalCount > 0` for a repo).
-- We cannot efficiently track Distinct Active Months.
+**Implementation**: 
+- The GraphQL query `object(expression: "HEAD") { ... on Commit { history { totalCount } } }` is added to all four contribution blocks (Commits, PRs, Issues, Reviews).
+- This ensures magnitude is captured even if the user hasn't made any commits to the repository.
 
-**Decision**: 
-- Use **Distinct Active Years** as the time unit. 
-- Metric: `Annual Contribution Rate = Total Contributions / Distinct Active Years`.
-- Thresholds for modifiers (`+`/`-`) will be based on this annual average.
-
-## 2. Rank Thresholds & Modifiers
+## 2. Rank Thresholds & Modifiers (Final)
 
 **Star Thresholds (Base Rank)**:
-- **S**: > 10,000
-- **A**: > 1,000
-- **B**: > 100
-- **C**: > 10
-- **D**: > 1
+- **S**: > 10,000 stars
+- **A**: 1,001 - 10,000 stars
+- **B**: 101 - 1,000 stars
+- **C**: 11 - 100 stars
+- **D**: 0 - 10 stars
 
-**Modifier Thresholds (Annual Rate)**:
-- We need empirical defaults.
-- **High (+)**: > 50 contributions/year (approx 1/week).
-- **Low (-)**: < 5 contributions/year.
-- **Neutral**: 5 - 50 contributions/year.
+**Modifier Thresholds (Project Magnitude)**:
+- **High (+)**: > 5,000 total commits (proxy for Large/Mature projects).
+- **Low (-)**: 1 - 99 total commits (proxy for Small/New projects).
+- **Neutral**: 100 - 5,000 commits OR Unknown magnitude (0 commits fetched).
 
-**Implementation**:
-- New function `calculate_repo_rank(stars: int, total_contribs: int, active_years: int) -> str` in `src/github/rank.py`.
+**Rationale**: Treating 0 as Neutral prevents unfair downgrades when the default branch is inaccessible or magnitude data is unavailable.
 
 ## 3. Visual Rendering
 
-**Requirement**: Auto-scale font size for 2-character ranks (e.g., "A+").
-**Current SVG**:
-```xml
-<text style="font-size: 10px;">{rank}</text>
-```
-**Change**:
-- If `len(rank) > 1`: Use `font-size: 8px` (or calculated equivalent).
-- Center alignment `dominant-baseline="central" text-anchor="middle"` is already used, so changing font size should keep it centered.
+**Requirement**: Auto-scale font size for multi-character ranks (e.g., "A+").
+**Implementation**:
+- `src/rendering/contrib.py` dynamically sets `font-size: 8px` if `len(rank) > 1`, otherwise `10px`.
+- This ensures the rank fits within the existing visual circle without breaking alignment.
 
 ## 4. API & Data Model
 
-**Updated `ContributorRepo`**:
-No schema change needed in `TypedDict` if we store the full rank string (e.g., "A+") in `rank_level`.
+**Function Signature**:
+- `calculate_repo_rank(stars: int, total_repo_commits: int) -> str`
 
 **Logic Flow**:
-1. `fetcher.py`:
-   - Initialize `repo_years_count = {name: 0}`.
-   - Inside the yearly loop, if `count > 0`, increment `repo_years_count[name]`.
-   - After loop, calculate rank for each repo using `calculate_repo_rank`.
-   - Assign to `rank_level`.
+1. `fetch_contributor_stats` fetches repositories over the last 5 years.
+2. For each repository, it extracts `total_repo_commits` from the commit history.
+3. It aggregates contributions (Commits, PRs, Issues, Reviews) for sorting.
+4. It calculates the rank using `calculate_repo_rank(stars, total_repo_commits)`.
+5. The rank is assigned to `rank_level` and rendered in the SVG.

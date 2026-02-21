@@ -25,11 +25,12 @@ uv run github-stats-card contrib --username [user]
     *   **D**: 0 - 10 Stars
 2.  **Contribution Modifiers**: The rank is adjusted based on the **repository's total commit count** (Project Magnitude).
     *   **+**: Large/Mature Project (> 5,000 commits)
-    *   **-**: Small/New Project (< 100 commits)
-    *   (None): Medium Project (100 - 5,000 commits)
+    *   **-**: Small/New Project (1 - 99 commits)
+    *   (None): Medium Project (100 - 5,000 commits) OR Unknown Magnitude (0 commits)
 3.  **Example**:
     *   Repository: `debezium/debezium` (14k stars, 11k commits) -> **S+** (S Tier + High Magnitude)
     *   Repository: `my-small-repo` (50 stars, 10 commits) -> **C-** (C Tier + Low Magnitude)
+    *   Repository: `empty-repo` (100 stars, 0 commits) -> **B** (B Tier + Unknown Magnitude)
 
 ## Configuration
 
