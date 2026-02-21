@@ -66,6 +66,11 @@ The project uses `uv` for all lifecycle tasks.
 - Python 3.13+ (Managed by `uv`) + Click (CLI), Requests (API), Built-in XML/SVG libraries
 
 ## Recent Changes
+### [Rework Ranking] (2026-02-20)
+- Updated `contrib` card ranking logic to be repository-centric.
+- Rank is now based on **Stars** (Base) + **Repo Total Commits** (Modifier).
+- Renamed internal ranking function to `calculate_user_rank` for clarity.
+
 ### [Contributor Card] (2026-02-08)
 - Added `contrib` subcommand to display top external contributions.
 - Features: Star-based sorting, repository exclusion, embedded avatars.

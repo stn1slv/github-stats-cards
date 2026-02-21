@@ -13,6 +13,7 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
 - **US-007:** As a user, I want to customize the number of repositories displayed on the contributor card.
 - **US-008:** As a user, I want to apply existing themes to the contributor card for consistency.
 - **US-009:** As a user, I want clear feedback if I have no contributions or if I provide invalid limits.
+- **US-010:** [Source: 002-rework-ranking] As a user, I want the contributor card to rank repositories based on their popularity and magnitude, so that contributing to massive projects (like Debezium) is recognized with a high rank regardless of my commit count.
 
 ## Functional Requirements
 
@@ -32,9 +33,9 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
   - Support custom GitHub API and GraphQL endpoints via environment variables.
 
 ### Card Type: Stats Card
-- **FR-005: Stats Calculation**
+- **FR-005: User Stats Calculation**
   - Aggregate total commits, PRs (total/merged), issues, reviews, and stars.
-  - **Ranking System:** Calculate a user rank (S+, S, A, B, etc.) using a percentile-based algorithm based on weighted contributions.
+  - **User Ranking System:** Calculate a user rank (S+, S, A, B, etc.) using a percentile-based algorithm based on weighted contributions.
 - **FR-006: Stats Rendering**
   - Render a vertical list of statistics with optional icons.
   - Display the calculated rank in a dedicated visual circle.
@@ -60,10 +61,17 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
   - **Filtering:** Filter out user-owned repositories and private repositories. Support manual exclusion via CLI (wildcards supported).
   - **Sorting:** Sort repositories by star count (descending).
 - **FR-010: Contributor Rendering**
-  - Render a list of top repositories (default 10) with repository name and user rank level.
+  - Render a list of top repositories (default 10) with repository name and repository-specific rank.
   - **Avatars:** Fetch and embed repository owner's avatar (Base64 encoded) as a circular icon next to the repository name.
   - **Fallback:** Use a generic placeholder icon if avatar fetching fails.
   - **Visuals:** Match the visual style of existing cards (fonts, padding, themes).
+  - **Font Scaling:** Automatically scale down rank text font size if it exceeds single character (e.g. "S+" vs "S").
+- **FR-011: Repository Ranking Logic** [Source: 002-rework-ranking]
+  - **Base Rank:** Determined by Repository Star Count (S > 10k, A > 1k, B > 100, C > 10, D > 1).
+  - **Modifier:** Determined by Repository Total Commits (Project Magnitude).
+    - `+`: Large/Mature (>5k commits).
+    - `-`: Small/New (<100 commits).
+    - (None): Medium (100-5k commits).
 
 ## Non-Functional Requirements
 - **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck).
@@ -106,13 +114,13 @@ TypedDict representing a contributed repository with name, stars, rank level, an
 ### Data Flow by Card Type
 
 **1. Stats Card Flow:**
-`cli.stats` -> `github.fetcher.fetch_stats` -> `github.client.graphql_query` -> `github.rank.calculate_rank` -> `rendering.stats.render_stats_card` -> `rendering.base.render_card` -> Output File
+`cli.stats` -> `github.fetcher.fetch_stats` -> `github.client.graphql_query` -> `github.rank.calculate_user_rank` -> `rendering.stats.render_stats_card` -> `rendering.base.render_card` -> Output File
 
 **2. Top Languages Card Flow:**
 `cli.top_langs` -> `github.langs_fetcher.fetch_top_languages` -> `github.client.graphql_query` -> `rendering.langs.render_top_languages` -> `rendering.base.render_card` -> Output File
 
 **3. Contributor Card Flow:**
-`cli.contrib` -> `github.fetcher.fetch_contributor_stats` -> `github.client.graphql_query` -> `github.client.fetch_image` -> `rendering.contrib.render_contrib_card` -> `rendering.base.render_card` -> Output File
+`cli.contrib` -> `github.fetcher.fetch_contributor_stats` -> `github.client.graphql_query` -> `github.rank.calculate_repo_rank` -> `github.client.fetch_image` -> `rendering.contrib.render_contrib_card` -> `rendering.base.render_card` -> Output File
 
 ### Layered Architecture (Sub-packages)
 - **Core (`src/core/`):** Fundamental logic, constants, and shared configuration.

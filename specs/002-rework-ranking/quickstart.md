@@ -23,14 +23,13 @@ uv run github-stats-card contrib --username [user]
     *   **B**: > 100 Stars
     *   **C**: > 10 Stars
     *   **D**: > 1 Star
-2.  **Contribution Modifiers**: The rank is adjusted based on your annual contribution rate.
-    *   **+**: High activity (> 50 contributions/year)
-    *   **-**: Low activity (< 5 contributions/year)
-    *   (None): Moderate activity
+2.  **Contribution Modifiers**: The rank is adjusted based on the **repository's total commit count** (Project Magnitude).
+    *   **+**: Large/Mature Project (> 5,000 commits)
+    *   **-**: Small/New Project (< 100 commits)
+    *   (None): Medium Project (100 - 5,000 commits)
 3.  **Example**:
-    *   Repository: `debezium/debezium` (12k stars) -> **S**
-    *   Your contributions: 100 commits in 2025 -> **S+** (Rate = 100/1 = 100)
-    *   Your contributions: 2 commits in 2025 -> **S-** (Rate = 2/1 = 2)
+    *   Repository: `debezium/debezium` (14k stars, 11k commits) -> **S+** (S Tier + High Magnitude)
+    *   Repository: `my-small-repo` (50 stars, 10 commits) -> **C-** (C Tier + Low Magnitude)
 
 ## Configuration
 

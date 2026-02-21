@@ -25,7 +25,7 @@ src/
 │   ├── client.py        # Centralized REST/GraphQL client
 │   ├── fetcher.py       # Stats & Contrib Card data fetcher
 │   ├── langs_fetcher.py # Top Languages data fetcher
-│   └── rank.py          # Ranking algorithm (Stats Card)
+│   └── rank.py          # Ranking algorithms (User & Repo)
 ├── rendering/           # SVG generation and visual logic
 │   ├── base.py          # Base SVG card renderer (shared)
 │   ├── colors.py        # Color parsing and utilities
@@ -56,6 +56,10 @@ src/
 - All new features must align with the 3-tier sub-package architecture.
 
 ## Recent Changes
+- **Rework Ranking (2026-02-20):** Shifted `contrib` card ranking to be repository-centric.
+  - Implemented `calculate_repo_rank` based on Stars + Repo Total Commits.
+  - Renamed `calculate_rank` to `calculate_user_rank` for clarity.
+  - Updated fetcher to retrieve repo commit history count.
 - **Contributor Card (2026-02-08):** Added `contrib` subcommand to display top external contributions.
   - Implemented `fetch_contributor_stats` with GraphQL filtering and sorting.
   - Added Base64 avatar embedding for repository owners.
