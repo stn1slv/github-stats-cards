@@ -57,11 +57,12 @@ As a user, I want my main stats card to continue using the existing ranking algo
 - **FR-002**: The rank calculation MUST prioritize the repository's **Star Count** as the primary factor, determining the base letter (S, A, B, C, D).
 - **FR-003**: The rank calculation MUST use the repository's **Total Commit Count** (Project Magnitude) as a modifier (adding `+` or `-`) to the base rank.
 - **FR-004**: The ranking tiers SHOULD follow a standard distribution based on star count thresholds:
-    - **S Tier**: > 10000 Stars (Example: `debezium/debezium` with >12k stars)
-    - **A Tier**: > 1000 Stars
-    - **B Tier**: > 100 Stars
-    - **C Tier**: > 10 Stars
-    - **D Tier**: > 1 Stars
+    - **S Tier**: > 10,000 Stars
+    - **A Tier**: 1,001 - 10,000 Stars
+    - **B Tier**: 101 - 1,000 Stars
+    - **C Tier**: 11 - 100 Stars
+    - **D Tier**: 0 - 10 Stars
+    - (Example: A repository like `debezium/debezium` with >12,000 stars must receive an **S** rank).
 - **FR-005**: The system MUST NOT apply the user's global rank to individual repositories in the `contrib` card.
 
 #### Stats Card Ranking Logic

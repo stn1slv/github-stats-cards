@@ -19,10 +19,10 @@ uv run github-stats-card contrib --username [user]
 
 1.  **Star-Based Tiers**: The base rank is determined by the repository's star count.
     *   **S**: > 10,000 Stars (e.g., Debezium)
-    *   **A**: > 1,000 Stars
-    *   **B**: > 100 Stars
-    *   **C**: > 10 Stars
-    *   **D**: > 1 Star
+    *   **A**: 1,001 - 10,000 Stars
+    *   **B**: 101 - 1,000 Stars
+    *   **C**: 11 - 100 Stars
+    *   **D**: 0 - 10 Stars
 2.  **Contribution Modifiers**: The rank is adjusted based on the **repository's total commit count** (Project Magnitude).
     *   **+**: Large/Mature Project (> 5,000 commits)
     *   **-**: Small/New Project (< 100 commits)

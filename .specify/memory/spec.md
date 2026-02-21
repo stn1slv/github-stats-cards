@@ -67,7 +67,12 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
   - **Visuals:** Match the visual style of existing cards (fonts, padding, themes).
   - **Font Scaling:** Automatically scale down rank text font size if it exceeds single character (e.g. "S+" vs "S").
 - **FR-011: Repository Ranking Logic** [Source: 002-rework-ranking]
-  - **Base Rank:** Determined by Repository Star Count (S > 10k, A > 1k, B > 100, C > 10, D > 1).
+  - **Base Rank:** Determined by Repository Star Count:
+    - `S`: > 10,000 stars.
+    - `A`: 1,001 - 10,000 stars.
+    - `B`: 101 - 1,000 stars.
+    - `C`: 11 - 100 stars.
+    - `D`: 0 - 10 stars.
   - **Modifier:** Determined by Repository Total Commits (Project Magnitude).
     - `+`: Large/Mature (>5k commits).
     - `-`: Small/New (<100 commits).

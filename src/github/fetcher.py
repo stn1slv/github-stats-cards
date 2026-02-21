@@ -410,6 +410,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   stargazers {
                     totalCount
                   }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
+                  }
                 }
                 contributions {
                   totalCount
@@ -426,6 +433,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   stargazers {
                     totalCount
                   }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
+                  }
                 }
                 contributions {
                   totalCount
@@ -441,6 +455,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   }
                   stargazers {
                     totalCount
+                  }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
                   }
                 }
                 contributions {
