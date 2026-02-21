@@ -39,14 +39,20 @@ def setup_mock_response(mock_client, repos_data):
     # 2. Contributions response
     commit_contribs = []
     for repo in repos_data:
+        repo_node = {
+            "nameWithOwner": repo["nameWithOwner"],
+            "isPrivate": repo["isPrivate"],
+            "stargazers": repo["stargazers"],
+            "owner": repo["owner"],
+        }
+
+        # Add total commit count if provided
+        if "total_repo_commits" in repo:
+            repo_node["object"] = {"history": {"totalCount": repo["total_repo_commits"]}}
+
         commit_contribs.append(
             {
-                "repository": {
-                    "nameWithOwner": repo["nameWithOwner"],
-                    "isPrivate": repo["isPrivate"],
-                    "stargazers": repo["stargazers"],
-                    "owner": repo["owner"],
-                },
+                "repository": repo_node,
                 "contributions": {"totalCount": repo.get("commits", 1)},
             }
         )
@@ -76,6 +82,7 @@ def test_fetch_contributor_stats_success(mock_client):
             "stargazers": {"totalCount": 100},
             "owner": {"avatarUrl": "http://avatar1", "login": "owner"},
             "commits": 10,
+            "total_repo_commits": 200,  # Neutral modifier
         },
         {
             "nameWithOwner": "owner/repo2",
@@ -83,6 +90,7 @@ def test_fetch_contributor_stats_success(mock_client):
             "stargazers": {"totalCount": 50},
             "owner": {"avatarUrl": "http://avatar2", "login": "owner"},
             "commits": 5,
+            "total_repo_commits": 20,  # Low modifier (-)
         },
     ]
     setup_mock_response(mock_client, repos)
@@ -94,10 +102,14 @@ def test_fetch_contributor_stats_success(mock_client):
     assert stats["repos"][0]["name"] == "owner/repo1"
     assert stats["repos"][0]["stars"] == 100
     assert stats["repos"][0]["commits"] == 10
-    assert "rank_level" in stats["repos"][0]
+    # Stars=100 -> C. RepoCommits=200 (Neutral) -> "C"
+    assert stats["repos"][0]["rank_level"] == "C"
+
     assert stats["repos"][1]["name"] == "owner/repo2"
     assert stats["repos"][1]["stars"] == 50
     assert stats["repos"][1]["commits"] == 5
+    # Stars=50 -> C. RepoCommits=20 (<100) -> "C-"
+    assert stats["repos"][1]["rank_level"] == "C-"
 
 
 def test_fetch_contributor_stats_sorting(mock_client):
@@ -295,3 +307,59 @@ def test_fetch_contributor_stats_deduplication(mock_client):
     assert stats["repos"][0]["name"] == "owner/repo"
     assert stats["repos"][0]["commits"] == 1
     assert stats["repos"][0]["prs"] == 1
+
+
+def test_fetch_contributor_stats_rank_calculation(mock_client):
+    """Test rank calculation with repo magnitude (total commits)."""
+    # 1. Years response (2 years)
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024]}}}}
+
+    # Repo S: S tier stars (>10k), >5000 repo commits -> S+
+    repo_s = {
+        "nameWithOwner": "owner/repo-s",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 10001},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+        "object": {"history": {"totalCount": 6000}},
+    }
+
+    # Repo A: A tier stars (>1k), <100 repo commits -> A-
+    repo_a = {
+        "nameWithOwner": "owner/repo-a",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 1001},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+        "object": {"history": {"totalCount": 50}},
+    }
+
+    # 2. 2024 response
+    response_2024 = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [
+                        {"repository": repo_s, "contributions": {"totalCount": 1}},
+                        {"repository": repo_a, "contributions": {"totalCount": 1}},
+                    ],
+                    "pullRequestContributionsByRepository": [],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    mock_client.graphql_query.side_effect = [years_response, response_2024]
+
+    config = ContribFetchConfig(username="user", token="token", limit=5)
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 2
+
+    # Check Repo S
+    s_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-s")
+    assert s_repo["rank_level"] == "S+"  # 10001 Stars, 6000 commits
+
+    # Check Repo A
+    a_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-a")
+    assert a_repo["rank_level"] == "A-"  # 1001 Stars, 50 commits

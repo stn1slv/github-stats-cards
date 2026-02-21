@@ -36,7 +36,7 @@ def log_normal_cdf(x: float) -> float:
     return x / (1 + x)
 
 
-def calculate_rank(
+def calculate_user_rank(
     commits: int,
     prs: int,
     issues: int,
@@ -64,7 +64,7 @@ def calculate_rank(
         Dictionary with 'level' (S, A+, A, A-, B+, B, B-, C+, C) and 'percentile'
 
     Examples:
-        >>> result = calculate_rank(1000, 100, 50, 10, 200, 50)
+        >>> result = calculate_user_rank(1000, 100, 50, 10, 200, 50)
         >>> result['level']
         'A+'
         >>> 0 <= result['percentile'] <= 100
@@ -118,3 +118,37 @@ def calculate_rank(
             break
 
     return {"level": level, "percentile": percentile}
+
+
+def calculate_repo_rank(stars: int, total_repo_commits: int) -> str:
+    """
+    Calculate rank for a single repository contribution.
+
+    Args:
+        stars: Repository star count
+        total_repo_commits: Total commits in the repository (proxy for size/activity)
+
+    Returns:
+        Rank string (e.g., "S", "A+", "B-")
+    """
+    # 1. Determine base rank from stars
+    if stars > 10000:
+        base_rank = "S"
+    elif stars > 1000:
+        base_rank = "A"
+    elif stars > 100:
+        base_rank = "B"
+    elif stars > 10:
+        base_rank = "C"
+    else:
+        base_rank = "D"
+
+    # 2. Apply modifiers based on repo magnitude (total commits)
+    # If magnitude is 0 (unknown or empty), we treat it as neutral to avoid unfair downgrades.
+    modifier = ""
+    if total_repo_commits > 5000:
+        modifier = "+"
+    elif 0 < total_repo_commits < 100:
+        modifier = "-"
+
+    return f"{base_rank}{modifier}"

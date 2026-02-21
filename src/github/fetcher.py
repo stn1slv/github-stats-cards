@@ -9,7 +9,7 @@ from ..core.config import ContribFetchConfig
 from ..core.exceptions import FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
-from .rank import calculate_rank
+from .rank import calculate_repo_rank
 
 
 class ContributorRepo(TypedDict):
@@ -337,14 +337,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     """
     client = GitHubClient(config.token)
 
-    # 1. Get total user stats as a baseline for rank
-    # We use fetch_stats to get overall activity (commits, prs, issues, reviews, followers)
-    try:
-        user_total_stats = fetch_stats(config.username, config.token, include_all_commits=True)
-    except Exception as e:
-        raise FetchError(f"Failed to fetch user baseline stats: {e}")
-
-    # 2. Get contribution years to iterate over
+    # 1. Get contribution years to iterate over
     years_query = """
     query userYears($login: String!) {
       user(login: $login) {
@@ -367,7 +360,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     except requests.exceptions.RequestException as e:
         raise FetchError(f"Failed to fetch contribution years: {e}")
 
-    # 3. Iterate over last 5 years to collect repositories
+    # 2. Iterate over last 5 years to collect repositories
     # We limit to 5 years to balance performance vs accuracy
     target_years = sorted(years, reverse=True)[:5]
 
@@ -377,6 +370,8 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         from_date = f"{year}-01-01T00:00:00Z"
         to_date = f"{year}-12-31T23:59:59Z"
 
+        # Note: We fetch total commit count (history) only in commitContributions
+        # to avoid complexity. It serves as a proxy for repo size.
         col_query = """
         query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {
           user(login: $login) {
@@ -391,6 +386,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   }
                   stargazers {
                     totalCount
+                  }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
                   }
                 }
                 contributions {
@@ -408,6 +410,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   stargazers {
                     totalCount
                   }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
+                  }
                 }
                 contributions {
                   totalCount
@@ -424,6 +433,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   stargazers {
                     totalCount
                   }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
+                  }
                 }
                 contributions {
                   totalCount
@@ -439,6 +455,13 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                   }
                   stargazers {
                     totalCount
+                  }
+                  object(expression: "HEAD") {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
+                    }
                   }
                 }
                 contributions {
@@ -474,6 +497,9 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                     name = repo["nameWithOwner"]
                     count = item["contributions"]["totalCount"]
 
+                    if count == 0:
+                        continue
+
                     # Filter private
                     if repo["isPrivate"]:
                         continue
@@ -484,6 +510,12 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
 
                     # Initialize or update repo data
                     if name not in raw_repos_map:
+                        # Extract repo total commits if available (only in commitContributions)
+                        total_repo_commits = 0
+                        obj = repo.get("object")
+                        if obj and "history" in obj:
+                            total_repo_commits = obj["history"]["totalCount"]
+
                         raw_repos_map[name] = {
                             "name": name,
                             "stars": repo["stargazers"]["totalCount"],
@@ -492,7 +524,17 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
                             "prs": 0,
                             "issues": 0,
                             "reviews": 0,
+                            "total_repo_commits": total_repo_commits,
                         }
+                    else:
+                        # Update total_repo_commits if we found it now but didn't have it before
+                        # (e.g. first found via PRs, now via Commits)
+                        if raw_repos_map[name]["total_repo_commits"] == 0:
+                            obj = repo.get("object")
+                            if obj and "history" in obj:
+                                raw_repos_map[name]["total_repo_commits"] = obj["history"][
+                                    "totalCount"
+                                ]
 
                     raw_repos_map[name][contrib_type] += count
 
@@ -505,22 +547,12 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             # Continue to next year on error
             continue
 
-    # Calculate overall user rank once and reuse for all repositories
-    user_rank = calculate_rank(
-        commits=user_total_stats["totalCommits"],
-        prs=user_total_stats["totalPRs"],
-        issues=user_total_stats["totalIssues"],
-        reviews=user_total_stats["totalReviews"],
-        stars=user_total_stats["totalStars"],
-        followers=user_total_stats["followers"],
-        all_commits=True,
-    )
-
     # Calculate ranks for all repositories
     final_repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
-        # Use the overall user rank level for each contributed repository
-        repo_data["rank_level"] = user_rank["level"]
+        repo_data["rank_level"] = calculate_repo_rank(
+            repo_data["stars"], repo_data["total_repo_commits"]
+        )
         final_repos_data.append(repo_data)
 
     # Filter excluded repos

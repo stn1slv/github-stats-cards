@@ -89,11 +89,13 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             # Use ring color from theme or fallback to title color
             ring_color = colors.get("ringColor", colors["titleColor"])
 
+            rank_size = 8 if len(rank) > 1 else 10
+
             body.append(f"""
             <g transform="translate({right_edge}, 7.5)">
                 <circle cx="10" cy="10" r="12" stroke="{ring_color}" stroke-width="2" fill="none" opacity="0.2" />
                 <text x="10" y="10" alignment-baseline="central" dominant-baseline="central" 
-                      text-anchor="middle" class="stat bold" style="font-size: 10px;">{rank}</text>
+                      text-anchor="middle" class="stat bold" style="font-size: {rank_size}px;">{rank}</text>
             </g>
             """)
 

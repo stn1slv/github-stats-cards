@@ -51,3 +51,19 @@
 - `src/github/fetcher.py`: Updated with `fetch_contributor_stats`.
 
 **Tasks Completed:** 22 tasks
+
+### [Rework Ranking] - 2026-02-20
+**Branch:** `002-rework-ranking`
+**Spec:** `002-rework-ranking`
+
+**What was added:**
+- Repository-centric ranking logic for Contributor Card (Stars + Repo Magnitude).
+- Logic to fetch repository total commit count via GraphQL.
+- Visual updates to support scaled rank text (e.g., S+).
+- Renamed internal ranking function to `calculate_user_rank` to distinguish from new `calculate_repo_rank`.
+
+**New Components:**
+- `src/github/rank.py`: Added `calculate_repo_rank`, updated `calculate_user_rank`.
+- `src/github/fetcher.py`: Updated fetch logic for repo magnitude.
+
+**Tasks Completed:** 9 tasks
