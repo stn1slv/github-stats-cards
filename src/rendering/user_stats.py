@@ -154,7 +154,7 @@ def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str
         icon_svg = ""
         label_x = STAT_LABEL_X_BASE
         if config.show_icons:
-            icon_svg = get_icon_svg(stat["icon"], colors["iconColor"])  # type: ignore
+            icon_svg = get_icon_svg(stat["icon"], colors["icon_color"])  # type: ignore
             label_x = STAT_LABEL_X_WITH_ICON
 
         # Animation delay starts at 450ms and increments by 150ms

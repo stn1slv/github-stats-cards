@@ -112,8 +112,8 @@ def test_render_top_languages_hide_border(sample_langs):
 def test_render_top_languages_theme(sample_langs):
     config = LangsCardConfig(theme="radical")
     svg = render_top_languages(sample_langs, config)
-    assert "#fe428e" in svg  # titleColor
-    assert "#141321" in svg  # bgColor
+    assert "#fe428e" in svg  # title_color
+    assert "#141321" in svg  # bg_color
 
 
 def test_render_top_languages_custom_colors(sample_langs):

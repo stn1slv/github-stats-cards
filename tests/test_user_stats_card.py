@@ -55,7 +55,7 @@ def test_render_user_stats_card_show_additional(sample_stats):
 def test_render_user_stats_card_custom_theme(sample_stats):
     config = UserStatsCardConfig(theme="radical")
     svg = render_user_stats_card(sample_stats, config)
-    assert "#fe428e" in svg  # titleColor from radical theme
+    assert "#fe428e" in svg  # title_color from radical theme
 
 
 def test_render_user_stats_card_hide_rank(sample_stats):

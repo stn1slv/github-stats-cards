@@ -37,37 +37,37 @@ def test_parse_color():
 
 def test_get_card_colors_default():
     colors = get_card_colors()
-    assert colors["titleColor"] == "#2f80ed"
-    assert colors["textColor"] == "#434d58"
-    assert colors["bgColor"] == "#fffefe"
+    assert colors["title_color"] == "#2f80ed"
+    assert colors["text_color"] == "#434d58"
+    assert colors["bg_color"] == "#fffefe"
 
 
 def test_get_card_colors_theme():
     colors = get_card_colors(theme="radical")
-    assert colors["titleColor"] == "#fe428e"
-    assert colors["textColor"] == "#a9fef7"
-    assert colors["bgColor"] == "#141321"
+    assert colors["title_color"] == "#fe428e"
+    assert colors["text_color"] == "#a9fef7"
+    assert colors["bg_color"] == "#141321"
 
 
 def test_get_card_colors_custom_overrides():
     colors = get_card_colors(title_color="ff0000", text_color="00ff00")
-    assert colors["titleColor"] == "#ff0000"
-    assert colors["textColor"] == "#00ff00"
+    assert colors["title_color"] == "#ff0000"
+    assert colors["text_color"] == "#00ff00"
     # Others should be default
-    assert colors["bgColor"] == "#fffefe"
+    assert colors["bg_color"] == "#fffefe"
 
 
 def test_get_card_colors_gradient():
     colors = get_card_colors(bg_color="45,ff0000,00ff00")
-    assert colors["bgColor"] == ["45", "ff0000", "00ff00"]
+    assert colors["bg_color"] == ["45", "ff0000", "00ff00"]
 
 
 def test_get_card_colors_ring_color_default():
     # Should fallback to title color
     colors = get_card_colors(theme="default")
-    assert colors["ringColor"] == colors["titleColor"]
+    assert colors["ring_color"] == colors["title_color"]
 
 
 def test_get_card_colors_ring_color_custom():
     colors = get_card_colors(ring_color="ff0000")
-    assert colors["ringColor"] == "#ff0000"
+    assert colors["ring_color"] == "#ff0000"

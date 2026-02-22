@@ -429,7 +429,7 @@ def render_top_languages(
 
     # Extract text color for rendering
     final_text_color = (
-        colors["textColor"] if isinstance(colors["textColor"], str) else colors["textColor"][1]
+        colors["text_color"] if isinstance(colors["text_color"], str) else colors["text_color"][1]
     )
 
     # Render layout
