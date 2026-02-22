@@ -1,5 +1,7 @@
 """Tests for color parsing and validation."""
 
+import pytest
+
 from src.rendering.colors import (
     is_valid_hex_color,
     is_valid_gradient,
@@ -8,31 +10,45 @@ from src.rendering.colors import (
 )
 
 
-def test_is_valid_hex_color():
-    assert is_valid_hex_color("ffffff") is True
-    assert is_valid_hex_color("fff") is True
-    assert is_valid_hex_color("ff00ff00") is True
-    assert is_valid_hex_color("f0f0") is True
-    assert is_valid_hex_color("gggggg") is False
-    assert is_valid_hex_color("ff") is False
-    assert is_valid_hex_color("fffff") is False
+@pytest.mark.parametrize(
+    "color,expected",
+    [
+        ("ffffff", True),
+        ("fff", True),
+        ("ff00ff00", True),
+        ("f0f0", True),
+        ("gggggg", False),
+        ("ff", False),
+        ("fffff", False),
+    ],
+)
+def test_is_valid_hex_color(color: str, expected: bool):
+    assert is_valid_hex_color(color) is expected
 
 
-def test_is_valid_gradient():
-    assert is_valid_gradient(["90", "ff0000", "00ff00"]) is True
-    assert is_valid_gradient(["90", "ff0000"]) is False
-    assert is_valid_gradient(["90", "gggggg", "00ff00"]) is False
+@pytest.mark.parametrize(
+    "parts,expected",
+    [
+        (["90", "ff0000", "00ff00"], True),
+        (["90", "ff0000"], False),
+        (["90", "gggggg", "00ff00"], False),
+    ],
+)
+def test_is_valid_gradient(parts: list[str], expected: bool):
+    assert is_valid_gradient(parts) is expected
 
 
-def test_parse_color():
-    # Valid hex
-    assert parse_color("2f80ed", "#000") == "#2f80ed"
-    # Valid gradient
-    assert parse_color("90,ff0000,00ff00", "#000") == ["90", "ff0000", "00ff00"]
-    # Invalid
-    assert parse_color("invalid", "#000") == "#000"
-    # None
-    assert parse_color(None, "#000") == "#000"
+@pytest.mark.parametrize(
+    "color,fallback,expected",
+    [
+        ("2f80ed", "#000", "#2f80ed"),
+        ("90,ff0000,00ff00", "#000", ["90", "ff0000", "00ff00"]),
+        ("invalid", "#000", "#000"),
+        (None, "#000", "#000"),
+    ],
+)
+def test_parse_color(color, fallback, expected):
+    assert parse_color(color, fallback) == expected
 
 
 def test_get_card_colors_default():

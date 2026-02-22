@@ -1,82 +1,112 @@
 """Tests for utility functions."""
 
-from src.core.utils import k_formatter, clamp_value, encode_html, parse_list_arg
+import pytest
+
+from src.core.utils import k_formatter, clamp_value, encode_html, parse_list_arg, is_repo_excluded
 
 
-def test_k_formatter_less_than_thousand():
-    assert k_formatter(500) == "500"
-    assert k_formatter(999) == "999"
+# ---------------------------------------------------------------------------
+# k_formatter
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "value,kwargs,expected",
+    [
+        (500, {}, "500"),
+        (999, {}, "999"),
+        (1000, {}, "1k"),
+        (1500, {}, "1.5k"),
+        (6626, {}, "6.6k"),
+        (10000, {}, "10k"),
+        (-1500, {}, "-1.5k"),
+        (6626, {"precision": 0}, "7k"),
+        (6626, {"precision": 1}, "6.6k"),
+        (6626, {"precision": 2}, "6.63k"),
+    ],
+)
+def test_k_formatter(value: int, kwargs: dict, expected: str):
+    assert k_formatter(value, **kwargs) == expected
 
 
-def test_k_formatter_thousands():
-    assert k_formatter(1000) == "1k"
-    assert k_formatter(1500) == "1.5k"
-    assert k_formatter(6626) == "6.6k"
-    assert k_formatter(10000) == "10k"
+# ---------------------------------------------------------------------------
+# clamp_value
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "value,lo,hi,expected",
+    [
+        (5, 0, 10, 5),
+        (-5, 0, 10, 0),
+        (15, 0, 10, 10),
+        (7.5, 0, 10, 7.5),
+    ],
+)
+def test_clamp_value(value, lo, hi, expected):
+    assert clamp_value(value, lo, hi) == expected
 
 
-def test_k_formatter_with_precision():
-    assert k_formatter(6626, precision=0) == "7k"
-    assert k_formatter(6626, precision=1) == "6.6k"
-    assert k_formatter(6626, precision=2) == "6.63k"
+# ---------------------------------------------------------------------------
+# encode_html
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Hello World", "Hello World"),
+        ("<script>", "&lt;script&gt;"),
+        ("A & B", "A &amp; B"),
+        ('"quoted"', "&quot;quoted&quot;"),
+        ("'single'", "&#39;single&#39;"),
+    ],
+)
+def test_encode_html(text: str, expected: str):
+    assert encode_html(text) == expected
 
 
-def test_k_formatter_negative():
-    assert k_formatter(-1500) == "-1.5k"
+# ---------------------------------------------------------------------------
+# parse_list_arg
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "arg,expected",
+    [
+        (None, []),
+        ("", []),
+        ("foo", ["foo"]),
+        ("foo,bar", ["foo", "bar"]),
+        (" foo , bar ", ["foo", "bar"]),
+        (["foo", "bar"], ["foo", "bar"]),
+        ([" foo ", " bar "], ["foo", "bar"]),
+    ],
+)
+def test_parse_list_arg(arg, expected):
+    assert parse_list_arg(arg) == expected
 
 
-def test_clamp_value():
-    assert clamp_value(5, 0, 10) == 5
-    assert clamp_value(-5, 0, 10) == 0
-    assert clamp_value(15, 0, 10) == 10
-    assert clamp_value(7.5, 0, 10) == 7.5
-
-
-def test_encode_html():
-    assert encode_html("Hello World") == "Hello World"
-    assert encode_html("<script>") == "&lt;script&gt;"
-    assert encode_html("A & B") == "A &amp; B"
-    assert encode_html('"quoted"') == "&quot;quoted&quot;"
-    assert encode_html("'single'") == "&#39;single&#39;"
-
-
-def test_parse_list_arg():
-    assert parse_list_arg(None) == []
-    assert parse_list_arg("") == []
-    assert parse_list_arg("foo") == ["foo"]
-    assert parse_list_arg("foo,bar") == ["foo", "bar"]
-    assert parse_list_arg(" foo , bar ") == ["foo", "bar"]
-    assert parse_list_arg(["foo", "bar"]) == ["foo", "bar"]
-    assert parse_list_arg([" foo ", " bar "]) == ["foo", "bar"]
-
-
-def test_is_repo_excluded():
-    from src.core.utils import is_repo_excluded
-
-    # Exact match (full name)
-    assert is_repo_excluded("owner/repo", ["owner/repo"]) is True
-    assert is_repo_excluded("owner/repo", ["other/repo"]) is False
-
-    # Exact match (repo name only pattern)
-    assert is_repo_excluded("stn1slv/awesome-cli-apps", ["awesome-cli-apps"]) is True
-    assert is_repo_excluded("octocat/awesome-cli-apps", ["awesome-cli-apps"]) is True
-    assert is_repo_excluded("awesome-cli-apps", ["awesome-cli-apps"]) is True
-
-    # Wildcard match (full name pattern)
-    assert is_repo_excluded("owner/repo-abc", ["owner/repo-*"]) is True
-    assert is_repo_excluded("other/repo-abc", ["owner/repo-*"]) is False
-
-    # Wildcard match (repo name only pattern)
-    assert is_repo_excluded("stn1slv/awesome-speakers", ["awesome-*"]) is True
-    assert is_repo_excluded("octocat/awesome-newsletters", ["awesome-*"]) is True
-    assert is_repo_excluded("other-apps", ["awesome-*"]) is False
-
-    # Case insensitive matching (enforced by lowercasing)
-    assert is_repo_excluded("AWESOME-apps", ["awesome-*"]) is True
-    assert is_repo_excluded("awesome-apps", ["AWESOME-*"]) is True
-
-    # Multiple patterns
-    assert is_repo_excluded("stn1slv/test-repo", ["awesome-*", "test-*"]) is True
-
-    # Empty patterns
-    assert is_repo_excluded("repo", []) is False
+# ---------------------------------------------------------------------------
+# is_repo_excluded
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "repo,patterns,expected",
+    [
+        # Exact match (full name)
+        ("owner/repo", ["owner/repo"], True),
+        ("owner/repo", ["other/repo"], False),
+        # Exact match (repo name only pattern)
+        ("stn1slv/awesome-cli-apps", ["awesome-cli-apps"], True),
+        ("octocat/awesome-cli-apps", ["awesome-cli-apps"], True),
+        ("awesome-cli-apps", ["awesome-cli-apps"], True),
+        # Wildcard match (full name pattern)
+        ("owner/repo-abc", ["owner/repo-*"], True),
+        ("other/repo-abc", ["owner/repo-*"], False),
+        # Wildcard match (repo name only pattern)
+        ("stn1slv/awesome-speakers", ["awesome-*"], True),
+        ("octocat/awesome-newsletters", ["awesome-*"], True),
+        ("other-apps", ["awesome-*"], False),
+        # Case insensitive matching
+        ("AWESOME-apps", ["awesome-*"], True),
+        ("awesome-apps", ["AWESOME-*"], True),
+        # Multiple patterns
+        ("stn1slv/test-repo", ["awesome-*", "test-*"], True),
+        # Empty patterns
+        ("repo", [], False),
+    ],
+)
+def test_is_repo_excluded(repo: str, patterns: list[str], expected: bool):
+    assert is_repo_excluded(repo, patterns) is expected
