@@ -1,10 +1,10 @@
-"""Stats card SVG renderer with all customization options."""
+"""User stats card SVG renderer with all customization options."""
 
 from typing import Any
 
 from .base import render_card
 from .colors import get_card_colors
-from ..core.config import StatsCardConfig
+from ..core.config import UserStatsCardConfig
 from ..core.constants import (
     ANIMATION_INITIAL_DELAY_MS,
     ANIMATION_STAGGER_DELAY_MS,
@@ -13,7 +13,7 @@ from ..core.constants import (
     STAT_LABEL_X_BASE,
     STAT_LABEL_X_WITH_ICON,
     STAT_VALUE_X_POSITION,
-    STATS_CARD_BASE_HEIGHT,
+    USER_STATS_CARD_BASE_HEIGHT,
 )
 from ..github.fetcher import UserStats
 from ..core.i18n import get_translation
@@ -79,9 +79,9 @@ def _get_stat_definitions(stats: UserStats, locale: str) -> dict[str, dict[str, 
     }
 
 
-def render_stats_card(stats: UserStats, config: StatsCardConfig) -> str:
+def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str:
     """
-    Render GitHub stats card as SVG.
+    Render GitHub user stats card as SVG.
 
     Args:
         stats: User statistics dictionary from fetcher
@@ -203,7 +203,7 @@ def render_stats_card(stats: UserStats, config: StatsCardConfig) -> str:
 
     # Calculate card height to match reference
     num_stats = len(stat_items)
-    card_height = (num_stats * config.line_height) + STATS_CARD_BASE_HEIGHT
+    card_height = (num_stats * config.line_height) + USER_STATS_CARD_BASE_HEIGHT
 
     # Add 30px extra height when title is shown (55px offset vs 25px)
     if not config.hide_title:

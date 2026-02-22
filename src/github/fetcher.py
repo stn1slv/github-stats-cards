@@ -48,7 +48,7 @@ class UserStats(TypedDict):
     discussionsAnswered: int
 
 
-def fetch_stats(
+def fetch_user_stats(
     username: str,
     token: str,
     include_all_commits: bool = False,

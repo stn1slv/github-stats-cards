@@ -9,15 +9,15 @@ from .core.config import (
     FetchConfig,
     LangsFetchConfig,
     LangsCardConfig,
-    StatsCardConfig,
+    UserStatsCardConfig,
     ContribCardConfig,
     ContribFetchConfig,
 )
 from .core.exceptions import FetchError, LanguageFetchError
-from .github.fetcher import fetch_stats, fetch_contributor_stats
+from .github.fetcher import fetch_user_stats, fetch_contributor_stats
 from .github.langs_fetcher import fetch_top_languages
 from .rendering.langs import render_top_languages
-from .rendering.stats import render_stats_card
+from .rendering.user_stats import render_user_stats_card
 from .rendering.contrib import render_contrib_card
 
 # Weighting presets for language ranking
@@ -29,13 +29,39 @@ WEIGHTING_PRESETS = {
 }
 
 
-@click.group()
+# Command aliases for backward compatibility
+COMMAND_ALIASES = {
+    "stats": "user-stats",
+}
+
+
+class AliasGroup(click.Group):
+    """Click group that supports command aliases for backward compatibility."""
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        # Resolve alias to canonical name
+        canonical = COMMAND_ALIASES.get(cmd_name, cmd_name)
+        return super().get_command(ctx, canonical)
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        cmd_name, cmd, remaining = super().resolve_command(ctx, args)
+        # Resolve alias so help text shows the canonical name
+        if cmd_name and cmd_name in COMMAND_ALIASES:
+            canonical = COMMAND_ALIASES[cmd_name]
+            cmd = super().get_command(ctx, canonical)
+            cmd_name = canonical
+        return cmd_name, cmd, remaining
+
+
+@click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
     pass
 
 
-@cli.command(name="stats")
+@cli.command(name="user-stats")
 @click.option(
     "--username",
     "-u",
@@ -178,7 +204,7 @@ def cli() -> None:
     default=True,
     help="Use bold text (default: yes)",
 )
-def stats(
+def user_stats(
     username: str,
     token: str,
     output: str,
@@ -209,7 +235,7 @@ def stats(
     text_bold: bool,
 ) -> None:
     """
-    Generate GitHub Stats Card SVG.
+    Generate GitHub User Stats Card SVG.
     
     This tool fetches your GitHub statistics and generates a beautiful
     SVG card that you can embed in your README.md or profile.
@@ -218,17 +244,20 @@ def stats(
     
       # Basic usage with environment variable
       export GITHUB_TOKEN=ghp_xxxxx
-      github-stats-card -u octocat -o stats.svg
+      github-stats-card user-stats -u octocat -o stats.svg
       
       # With theme and custom options
-      github-stats-card -u octocat -o stats.svg --theme vue-dark \\
+      github-stats-card user-stats -u octocat -o stats.svg --theme vue-dark \\
         --show-icons --hide-border --include-all-commits
       
       # Hide specific stats
-      github-stats-card -u octocat -o stats.svg --hide stars,prs
+      github-stats-card user-stats -u octocat -o stats.svg --hide stars,prs
       
       # Show additional stats
-      github-stats-card -u octocat -o stats.svg --show reviews,discussions_started
+      github-stats-card user-stats -u octocat -o stats.svg --show reviews,discussions_started
+      
+      # Backward-compatible alias
+      github-stats-card stats -u octocat -o stats.svg
     """
     try:
         # Create fetch configuration
@@ -242,7 +271,7 @@ def stats(
 
         # Fetch stats from GitHub
         click.echo(f"Fetching GitHub stats for {username}...", err=True)
-        stats = fetch_stats(
+        user_stats_data = fetch_user_stats(
             username=fetch_config.username,
             token=fetch_config.token,
             include_all_commits=fetch_config.include_all_commits,
@@ -250,10 +279,12 @@ def stats(
             show=fetch_config.show,
         )
 
-        click.echo(f"Found stats for {stats['name']} (@{stats['login']})", err=True)
+        click.echo(
+            f"Found stats for {user_stats_data['name']} (@{user_stats_data['login']})", err=True
+        )
 
         # Create rendering configuration
-        render_config = StatsCardConfig.from_cli_args(
+        render_config = UserStatsCardConfig.from_cli_args(
             theme=theme,
             show_icons=show_icons,
             hide_border=hide_border,
@@ -282,7 +313,7 @@ def stats(
 
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
-        svg = render_stats_card(stats, render_config)
+        svg = render_user_stats_card(user_stats_data, render_config)
 
         # Write to file
         output_path = os.path.abspath(output)

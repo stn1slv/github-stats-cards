@@ -34,7 +34,7 @@ As a user, I want my main stats card to continue using the existing ranking algo
 **Why this priority**: Explicit requirement to preserve existing behavior for the main stats card.
 
 **Independent Test**:
-- Command: `uv run github-stats-card stats --username [user]`
+- Command: `uv run github-stats-card user-stats --username [user]`
 
 **Acceptance Scenarios**:
 
@@ -66,7 +66,7 @@ As a user, I want my main stats card to continue using the existing ranking algo
 - **FR-005**: The system MUST NOT apply the user's global rank to individual repositories in the `contrib` card.
 
 #### Stats Card Ranking Logic
-- **FR-006**: The system MUST continue to use the existing `calculate_rank` function (or equivalent logic) for the `stats` command, ensuring no change in output for the main stats card.
+- **FR-006**: The system MUST continue to use the existing `calculate_rank` function (or equivalent logic) for the `user-stats` command, ensuring no change in output for the main stats card.
 
 ### Visual/Output Requirements
 - **VR-001**: The Contributor Card SVG MUST display the specific rank (S, A, B...) next to each repository, replacing the currently duplicated global rank.

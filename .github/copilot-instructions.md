@@ -25,7 +25,7 @@ This is a Python CLI tool that generates beautiful GitHub stats cards as SVG ima
 ✅ Correct:
 ```bash
 uv run pytest
-uv run github-stats-card -u username -o output.svg
+uv run github-stats-card user-stats -u username -o output.svg
 uv run black src tests
 uv run mypy src
 ```
@@ -34,7 +34,7 @@ uv run mypy src
 ```bash
 python -m pytest
 pytest
-github-stats-card -u username -o output.svg
+github-stats-card user-stats -u username -o output.svg
 black src tests
 ```
 
@@ -57,22 +57,35 @@ black src tests
 src/
 ├── __init__.py          # Package initialization, version info
 ├── __main__.py          # Entry point for `python -m github_stats_card`
-├── card.py              # Base SVG card rendering class
 ├── cli.py               # Click-based CLI interface with all options
-├── colors.py            # Color parsing, validation, gradient handling
-├── fetcher.py           # GitHub GraphQL API client
-├── i18n.py              # Internationalization/translations
-├── icons.py             # SVG icon definitions (Octicons)
-├── rank.py              # User rank calculation algorithm
-├── stats_card.py        # Main stats card renderer (extends Card)
-├── themes.py            # 50+ theme definitions
-└── utils.py             # Utility functions (animation, formatting)
+├── core/
+│   ├── config.py        # Configuration dataclasses
+│   ├── constants.py     # Centralized constants
+│   ├── exceptions.py    # Exception hierarchy
+│   ├── i18n.py          # Internationalization/translations
+│   └── utils.py         # Utility functions (formatting, etc.)
+├── github/
+│   ├── client.py        # Authenticated API client
+│   ├── fetcher.py       # User stats & contributor data fetching
+│   ├── langs_fetcher.py # Language data fetching
+│   └── rank.py          # User rank calculation algorithm
+└── rendering/
+    ├── base.py          # Base SVG card rendering
+    ├── colors.py        # Color parsing, validation, gradient handling
+    ├── contrib.py       # Contributor card renderer
+    ├── icons.py         # SVG icon definitions (Octicons)
+    ├── langs.py         # Top languages card renderer
+    ├── user_stats.py    # User stats card renderer
+    └── themes.py        # 50+ theme definitions
 
 tests/
-├── test_colors.py       # Color parsing and gradient tests
-├── test_rank.py         # Rank calculation tests
-├── test_stats_card.py   # Stats card rendering tests
-└── test_utils.py        # Utility function tests
+├── test_cli.py              # CLI integration tests
+├── test_colors.py           # Color parsing and gradient tests
+├── test_contrib_card.py     # Contributor card tests
+├── test_langs_card.py       # Languages card tests
+├── test_rank.py             # Rank calculation tests
+├── test_user_stats_card.py  # User stats card rendering tests
+└── test_utils.py            # Utility function tests
 ```
 
 ## Architecture Patterns
@@ -83,16 +96,14 @@ tests/
 - Supports gradients, borders, animations
 - Methods: `render()`, `_create_gradient()`, `_create_background()`
 
-### 2. Stats Card (stats_card.py)
-- `StatsCard` extends `Card`
+### 2. User Stats Card (rendering/user_stats.py)
 - Renders individual stat items with icons
 - Manages layout: title, stats grid, progress bars
-- Key method: `render(stats, config)` → returns SVG string
+- Key function: `render_user_stats_card(stats, config)` → returns SVG string
 
-### 3. Data Fetching (fetcher.py)
-- `GitHubFetcher` class: GraphQL API client
-- Async-capable with httpx
-- Methods: `fetch_stats()`, `_run_query()`
+### 3. Data Fetching (github/fetcher.py)
+- `GitHubClient` class: GraphQL API client
+- Methods: `fetch_user_stats()`, `fetch_contributor_stats()`
 - Handles rate limiting and errors
 - Returns dict with all stats
 
@@ -122,7 +133,7 @@ def calculate_rank(stats: dict[str, int]) -> str:
 ### Docstrings
 Use Google-style docstrings for all public functions/classes:
 ```python
-def fetch_stats(username: str, token: str) -> dict[str, Any]:
+def fetch_user_stats(username: str, token: str) -> dict[str, Any]:
     """Fetch GitHub statistics for a user.
     
     Args:
@@ -213,20 +224,20 @@ def test_parse_color(color, expected):
 ## Common Tasks
 
 ### Adding a New Theme
-1. Add to `src/themes.py` THEMES dict
-2. Test with: `uv run github-stats-card -u octocat -o test.svg --theme new_theme`
+1. Add to `src/rendering/themes.py` THEMES dict
+2. Test with: `uv run github-stats-card user-stats -u octocat -o test.svg --theme new_theme`
 3. Document in EXAMPLES.md
 
 ### Adding a New Stat
-1. Update `src/fetcher.py` GraphQL query
-2. Add to `src/stats_card.py` all_stats dict
-3. Add translation in `src/i18n.py`
-4. Add test in `tests/test_stats_card.py`
+1. Update `src/github/fetcher.py` GraphQL query
+2. Add to `src/rendering/user_stats.py` `_get_stat_definitions` dict
+3. Add translation in `src/core/i18n.py`
+4. Add test in `tests/test_user_stats_card.py`
 
 ### Adding a New Icon
 1. Get SVG path from [Octicons](https://primer.style/octicons/)
-2. Add to `src/icons.py` ICONS dict
-3. Use in stats_card.py via `get_icon()`
+2. Add to `src/rendering/icons.py` ICONS dict
+3. Use in user_stats.py via `get_icon_svg()`
 
 ### Adding a Translation
 1. Add locale to `src/i18n.py` TRANSLATIONS dict

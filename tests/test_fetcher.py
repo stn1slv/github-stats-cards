@@ -11,7 +11,7 @@ from src.core.exceptions import FetchError
 def mock_client():
     with (
         patch("src.github.fetcher.GitHubClient") as MockClient,
-        patch("src.github.fetcher.fetch_stats") as mock_fetch_stats,
+        patch("src.github.fetcher.fetch_user_stats") as mock_fetch_stats,
     ):
 
         client_instance = MockClient.return_value

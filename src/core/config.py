@@ -37,8 +37,8 @@ class BaseConfig:
 
 
 @dataclass
-class StatsCardConfig(BaseConfig):
-    """Configuration for stats card rendering."""
+class UserStatsCardConfig(BaseConfig):
+    """Configuration for user stats card rendering."""
 
     # Theme and colors
     theme: str = "default"

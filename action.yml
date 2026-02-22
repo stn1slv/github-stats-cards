@@ -8,9 +8,9 @@ branding:
 
 inputs:
   card-type:
-    description: 'Type of card to generate (stats, top-langs, or contrib)'
+    description: 'Type of card to generate (user-stats, top-langs, or contrib). "stats" is accepted as an alias for "user-stats".'
     required: true
-    default: 'stats'
+    default: 'user-stats'
   
   username:
     description: 'GitHub username'
@@ -31,7 +31,7 @@ inputs:
   
   # Stats card specific options
   show-icons:
-    description: 'Show icons next to stats (stats card only)'
+    description: 'Show icons next to stats (user-stats card only)'
     required: false
     default: 'false'
   
@@ -46,12 +46,12 @@ inputs:
     default: 'false'
   
   hide-rank:
-    description: 'Hide rank circle (stats card only)'
+    description: 'Hide rank circle (user-stats card only)'
     required: false
     default: 'false'
   
   include-all-commits:
-    description: 'Include all commits, not just current year (stats card only)'
+    description: 'Include all commits, not just current year (user-stats card only)'
     required: false
     default: 'false'
   
@@ -167,8 +167,8 @@ runs:
       shell: bash
       run: |
         # Build command based on card type
-        if [ "${{ inputs.card-type }}" = "stats" ]; then
-          CMD="github-stats-card stats"
+        if [ "${{ inputs.card-type }}" = "user-stats" ] || [ "${{ inputs.card-type }}" = "stats" ]; then
+          CMD="github-stats-card user-stats"
         elif [ "${{ inputs.card-type }}" = "top-langs" ]; then
           CMD="github-stats-card top-langs"
         else
@@ -187,7 +187,7 @@ runs:
         [ "${{ inputs.disable-animations }}" = "true" ] && CMD="$CMD --disable-animations"
         
         # Add stats-specific options
-        if [ "${{ inputs.card-type }}" = "stats" ]; then
+        if [ "${{ inputs.card-type }}" = "user-stats" ] || [ "${{ inputs.card-type }}" = "stats" ]; then
           [ "${{ inputs.show-icons }}" = "true" ] && CMD="$CMD --show-icons"
           [ "${{ inputs.hide-rank }}" = "true" ] && CMD="$CMD --hide-rank"
           [ "${{ inputs.include-all-commits }}" = "true" ] && CMD="$CMD --include-all-commits"

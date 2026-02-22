@@ -29,7 +29,7 @@ The project uses `uv` for all lifecycle tasks.
 *   **Run the CLI (Development):**
     ```bash
     # Generate Stats Card
-    uv run github-stats-card stats -u <username> -o stats.svg
+    uv run github-stats-card user-stats -u <username> -o stats.svg
 
     # Generate Top Languages Card
     uv run github-stats-card top-langs -u <username> -o langs.svg

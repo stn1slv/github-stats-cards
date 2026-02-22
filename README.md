@@ -34,7 +34,7 @@ jobs:
       - name: Generate GitHub Stats Card
         uses: stn1slv/github-stats-card@v1.1.1
         with:
-          card-type: stats
+          card-type: user-stats
           username: ${{ github.repository_owner }}
           token: ${{ secrets.GITHUB_TOKEN }}
           output: img/github-stats.svg
@@ -96,7 +96,7 @@ Choose from 50+ themes like `default`, `dark`, `radical`, `vue`, `tokyonight`, `
 ### Common Inputs
 | Input | Description | Default |
 | :--- | :--- | :--- |
-| `card-type` | Type of card: `stats`, `top-langs`, or `contrib` | **Required** |
+| `card-type` | Type of card: `user-stats` (alias: `stats`), `top-langs`, or `contrib` | **Required** |
 | `username` | Your GitHub username | **Required** |
 | `token` | GitHub PAT with `read:user` scope | **Required** |
 | `output` | Output SVG file path | **Required** |
@@ -106,7 +106,7 @@ Choose from 50+ themes like `default`, `dark`, `radical`, `vue`, `tokyonight`, `
 
 ### Card-Specific Inputs
 Detailed configuration options are available for each card type:
-- **Stats Card:** `show-icons`, `include-all-commits`, `hide`, `show`, `hide-rank`
+- **User Stats Card:** `show-icons`, `include-all-commits`, `hide`, `show`, `hide-rank`
 - **Top Languages:** `layout` (normal/compact/donut/pie), `langs-count`, `weighting`, `exclude-repo`
 - **Top Contributions:** `limit`, `exclude-repo`
 
@@ -131,7 +131,7 @@ pip install -e .
 ### Quick Run (no installation)
 ```bash
 export GITHUB_TOKEN=ghp_your_token
-uv run github-stats-card stats -u your-username -o stats.svg
+uv run github-stats-card user-stats -u your-username -o stats.svg
 ```
 
 ---
@@ -146,7 +146,7 @@ This tool is compatible with GitHub Enterprise Server. Configure custom API endp
   env:
     GITHUB_API_URL: https://github.enterprise.com/api/v3
   with:
-    card-type: stats
+    card-type: user-stats
     username: your-username
     token: ${{ secrets.GHE_TOKEN }}
     output: stats.svg
