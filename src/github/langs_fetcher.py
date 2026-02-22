@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import requests  # type: ignore
 
+from ..core.config import LangsFetchConfig
 from ..core.constants import DEFAULT_LANG_COLOR
 from ..core.exceptions import LanguageFetchError
 from ..core.utils import is_repo_excluded
@@ -20,22 +21,12 @@ class Language:
     count: int  # number of repos using this language
 
 
-def fetch_top_languages(
-    username: str,
-    token: str,
-    exclude_repo: list[str] | None = None,
-    size_weight: float = 1.0,
-    count_weight: float = 0.0,
-) -> dict[str, Language]:
+def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
     """
     Fetch top programming languages for a GitHub user.
 
     Args:
-        username: GitHub username
-        token: GitHub Personal Access Token
-        exclude_repo: List of repository names to exclude
-        size_weight: Weight for byte count in ranking (default: 1.0)
-        count_weight: Weight for repo count in ranking (default: 0.0)
+        config: Language fetch configuration
 
     Returns:
         Dictionary mapping language name to Language object, sorted by size descending
@@ -43,8 +34,11 @@ def fetch_top_languages(
     Raises:
         LanguageFetchError: If API request fails or returns errors
     """
-    client = GitHubClient(token)
-    exclude_repo = exclude_repo or []
+    client = GitHubClient(config.token)
+    username = config.username
+    exclude_repo = config.exclude_repo or []
+    size_weight = config.size_weight
+    count_weight = config.count_weight
 
     query = """
     query userInfo($login: String!) {

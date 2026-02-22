@@ -271,13 +271,7 @@ def user_stats(
 
         # Fetch stats from GitHub
         click.echo(f"Fetching GitHub stats for {username}...", err=True)
-        user_stats_data = fetch_user_stats(
-            username=fetch_config.username,
-            token=fetch_config.token,
-            include_all_commits=fetch_config.include_all_commits,
-            commits_year=fetch_config.commits_year,
-            show=fetch_config.show,
-        )
+        user_stats_data = fetch_user_stats(fetch_config)
 
         click.echo(
             f"Found stats for {user_stats_data['name']} (@{user_stats_data['login']})", err=True
@@ -533,13 +527,7 @@ def top_langs(
 
         # Fetch languages from GitHub
         click.echo(f"Fetching language data for {username}...", err=True)
-        top_languages = fetch_top_languages(
-            username=fetch_config.username,
-            token=fetch_config.token,
-            exclude_repo=fetch_config.exclude_repo,
-            size_weight=fetch_config.size_weight,
-            count_weight=fetch_config.count_weight,
-        )
+        top_languages = fetch_top_languages(fetch_config)
 
         if not top_languages:
             click.echo("⚠️  No languages found", err=True)
@@ -725,8 +713,6 @@ def contrib(
 
         # Create rendering configuration
         render_config = ContribCardConfig.from_cli_args(
-            limit=limit,
-            exclude_repo=exclude_repo,
             theme=theme,
             hide_border=hide_border,
             hide_title=hide_title,

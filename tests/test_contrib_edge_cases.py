@@ -45,7 +45,7 @@ def test_render_limit_handling():
         ]
     }
     # Rendering relies on pre-sliced stats, but ensure it handles whatever is passed
-    config = ContribCardConfig(limit=5)
+    config = ContribCardConfig()
 
     svg = render_contrib_card(stats, config)
 

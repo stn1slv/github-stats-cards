@@ -5,7 +5,7 @@ import requests  # type: ignore
 from typing import TypedDict, Any
 
 from ..core.constants import API_BASE_URL
-from ..core.config import ContribFetchConfig
+from ..core.config import ContribFetchConfig, FetchConfig
 from ..core.exceptions import FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
@@ -48,22 +48,12 @@ class UserStats(TypedDict):
     discussionsAnswered: int
 
 
-def fetch_user_stats(
-    username: str,
-    token: str,
-    include_all_commits: bool = False,
-    commits_year: int | None = None,
-    show: list[str] | None = None,
-) -> UserStats:
+def fetch_user_stats(config: FetchConfig) -> UserStats:
     """
     Fetch GitHub user statistics via GraphQL and REST APIs.
 
     Args:
-        username: GitHub username
-        token: GitHub Personal Access Token
-        include_all_commits: If True, count all commits (uses REST API)
-        commits_year: If specified, filter commits to this year
-        show: Optional list of additional stats to fetch
+        config: Fetch configuration
 
     Returns:
         Dictionary with user statistics
@@ -71,8 +61,11 @@ def fetch_user_stats(
     Raises:
         FetchError: If API request fails
     """
-    client = GitHubClient(token)
-    show = show or []
+    client = GitHubClient(config.token)
+    username = config.username
+    include_all_commits = config.include_all_commits
+    commits_year = config.commits_year
+    show = config.show or []
 
     # Build date range for commits_year filter
     from_date = None

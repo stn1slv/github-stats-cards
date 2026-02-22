@@ -5,6 +5,7 @@ import pytest
 import requests
 
 from src.github.langs_fetcher import fetch_top_languages, Language, LanguageFetchError
+from src.core.config import LangsFetchConfig
 
 
 def test_language_dataclass():
@@ -44,7 +45,8 @@ def test_fetch_top_languages_success(mock_post):
     }
     mock_post.return_value = mock_response
 
-    result = fetch_top_languages("testuser", "testtoken")
+    config = LangsFetchConfig(username="testuser", token="testtoken")
+    result = fetch_top_languages(config)
 
     assert len(result) == 2
     assert "Python" in result
@@ -77,7 +79,8 @@ def test_fetch_top_languages_exclude_repos(mock_post):
     }
     mock_post.return_value = mock_response
 
-    result = fetch_top_languages("testuser", "testtoken", exclude_repo=["repo2"])
+    config = LangsFetchConfig(username="testuser", token="testtoken", exclude_repo=["repo2"])
+    result = fetch_top_languages(config)
 
     assert len(result) == 1
     assert "Python" in result
@@ -109,7 +112,10 @@ def test_fetch_top_languages_with_weights(mock_post):
     mock_post.return_value = mock_response
 
     # size^0.5 * count^1.0 = (200^0.5) * (2^1.0) = 14.14 * 2 = 28.28 -> 28
-    result = fetch_top_languages("testuser", "testtoken", size_weight=0.5, count_weight=1.0)
+    config = LangsFetchConfig(
+        username="testuser", token="testtoken", size_weight=0.5, count_weight=1.0
+    )
+    result = fetch_top_languages(config)
 
     assert result["Python"].size == 28
 
@@ -121,16 +127,18 @@ def test_fetch_top_languages_api_error(mock_post):
     mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("Not Found")
     mock_post.return_value = mock_response
 
+    config = LangsFetchConfig(username="testuser", token="testtoken")
     with pytest.raises(LanguageFetchError, match="Failed to fetch data"):
-        fetch_top_languages("testuser", "testtoken")
+        fetch_top_languages(config)
 
 
 @patch("requests.post")
 def test_fetch_top_languages_network_error(mock_post):
     mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
 
+    config = LangsFetchConfig(username="testuser", token="testtoken")
     with pytest.raises(LanguageFetchError, match="Failed to fetch data"):
-        fetch_top_languages("testuser", "testtoken")
+        fetch_top_languages(config)
 
 
 @patch("requests.post")
@@ -140,8 +148,9 @@ def test_fetch_top_languages_no_data(mock_post):
     mock_response.json.return_value = {"data": None}
     mock_post.return_value = mock_response
 
+    config = LangsFetchConfig(username="testuser", token="testtoken")
     with pytest.raises(LanguageFetchError, match="No data returned"):
-        fetch_top_languages("testuser", "testtoken")
+        fetch_top_languages(config)
 
 
 @patch("requests.post")
@@ -151,8 +160,9 @@ def test_fetch_top_languages_user_not_found(mock_post):
     mock_response.json.return_value = {"data": {"user": None}}
     mock_post.return_value = mock_response
 
+    config = LangsFetchConfig(username="testuser", token="testtoken")
     with pytest.raises(LanguageFetchError, match="User 'testuser' not found"):
-        fetch_top_languages("testuser", "testtoken")
+        fetch_top_languages(config)
 
 
 @patch("requests.post")
@@ -177,5 +187,6 @@ def test_fetch_top_languages_missing_color(mock_post):
     }
     mock_post.return_value = mock_response
 
-    result = fetch_top_languages("testuser", "testtoken")
+    config = LangsFetchConfig(username="testuser", token="testtoken")
+    result = fetch_top_languages(config)
     assert result["Python"].color == "#858585"  # Default color

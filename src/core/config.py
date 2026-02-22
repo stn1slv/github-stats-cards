@@ -37,33 +37,49 @@ class BaseConfig:
 
 
 @dataclass
-class UserStatsCardConfig(BaseConfig):
-    """Configuration for user stats card rendering."""
+class CardStyleConfig(BaseConfig):
+    """Shared visual/style configuration for all card types."""
 
     # Theme and colors
     theme: str = "default"
     title_color: str | None = None
     text_color: str | None = None
-    icon_color: str | None = None
     bg_color: str | None = None
     border_color: str | None = None
+
+    # Visibility options
+    hide_title: bool = False
+    hide_border: bool = False
+
+    # Layout options
+    card_width: int | None = None
+    border_radius: float = 4.5
+
+    # Text options
+    custom_title: str | None = None
+
+    # Animation options
+    disable_animations: bool = False
+
+
+@dataclass
+class UserStatsCardConfig(CardStyleConfig):
+    """Configuration for user stats card rendering."""
+
+    # Additional colors
+    icon_color: str | None = None
     ring_color: str | None = None
 
     # Visibility options
     hide: list[str] = field(default_factory=list)
     show: list[str] = field(default_factory=list)
-    hide_title: bool = False
-    hide_border: bool = False
     hide_rank: bool = False
     show_icons: bool = False
 
     # Layout options
-    card_width: int | None = None
     line_height: int = 25
-    border_radius: float = 4.5
 
     # Text options
-    custom_title: str | None = None
     locale: str = "en"
     text_bold: bool = True
 
@@ -71,8 +87,7 @@ class UserStatsCardConfig(BaseConfig):
     number_format: str = "short"  # "short" or "long"
     number_precision: int | None = None
 
-    # Animation options
-    disable_animations: bool = False
+    # Rank display
     rank_icon: str = "default"  # "default", "github", "percentile"
 
     # Commit filtering
@@ -80,26 +95,15 @@ class UserStatsCardConfig(BaseConfig):
 
 
 @dataclass
-class LangsCardConfig(BaseConfig):
+class LangsCardConfig(CardStyleConfig):
     """Configuration for top languages card rendering."""
-
-    # Theme and colors
-    theme: str = "default"
-    title_color: str | None = None
-    text_color: str | None = None
-    bg_color: str | None = None
-    border_color: str | None = None
 
     # Visibility options
     hide: list[str] = field(default_factory=list)
-    hide_title: bool = False
-    hide_border: bool = False
     hide_progress: bool = False
 
     # Layout options
     layout: str = "normal"  # "normal", "compact", "donut", "donut-vertical", "pie"
-    card_width: int | None = None
-    border_radius: float = 4.5
 
     # Language options
     langs_count: int | None = None
@@ -110,11 +114,7 @@ class LangsCardConfig(BaseConfig):
     count_weight: float = 0.0
 
     # Display options
-    custom_title: str | None = None
     stats_format: str = "percentages"  # "percentages" or "bytes"
-
-    # Animation options
-    disable_animations: bool = False
 
 
 @dataclass
@@ -140,31 +140,11 @@ class LangsFetchConfig(BaseConfig):
 
 
 @dataclass
-class ContribCardConfig(BaseConfig):
+class ContribCardConfig(CardStyleConfig):
     """Configuration for contributor card rendering."""
 
-    # Theme and colors
-    theme: str = "default"
-    title_color: str | None = None
-    text_color: str | None = None
-    bg_color: str | None = None
-    border_color: str | None = None
-
-    # Visibility options
-    hide_border: bool = False
-    hide_title: bool = False
-
-    # Layout options
+    # Layout override (contrib cards default to 467px)
     card_width: int = 467
-    border_radius: float = 4.5
-
-    # Display options
-    limit: int = 10
-    exclude_repo: list[str] = field(default_factory=list)
-    custom_title: str | None = None
-
-    # Animation options
-    disable_animations: bool = False
 
 
 @dataclass
