@@ -1,12 +1,11 @@
 """GitHub API client for fetching user statistics."""
 
 import base64
-import requests  # type: ignore
 from typing import TypedDict, Any
 
 from ..core.constants import API_BASE_URL
 from ..core.config import ContribFetchConfig, FetchConfig
-from ..core.exceptions import FetchError
+from ..core.exceptions import APIError, FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
 from .rank import calculate_repo_rank
@@ -190,7 +189,7 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
         if not user:
             raise FetchError(f"User '{username}' not found")
 
-    except requests.exceptions.RequestException as e:
+    except APIError as e:
         raise FetchError(f"Failed to fetch data from GitHub: {e}")
 
     # Calculate total stars
@@ -239,7 +238,7 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
             else:
                 break
 
-        except requests.exceptions.RequestException:
+        except APIError:
             # If pagination fails, continue with what we have
             break
 
@@ -254,7 +253,7 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
                 headers={"Accept": "application/vnd.github.cloak-preview+json"},
             )
             total_commits = search_data.get("total_count", total_commits)
-        except requests.exceptions.RequestException:
+        except APIError:
             # If REST API fails, use GraphQL data
             pass
 
@@ -265,7 +264,7 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
             f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue"
         )
         total_issues = issues_data.get("total_count", total_issues)
-    except requests.exceptions.RequestException:
+    except APIError:
         # If REST API fails, use GraphQL data
         pass
 
@@ -295,7 +294,7 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
             discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get(
                 "totalCount", 0
             )
-        except requests.exceptions.RequestException:
+        except APIError:
             # If discussions query fails, continue with zeros
             pass
 
@@ -395,7 +394,7 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
             raise FetchError(f"User '{username}' not found")
 
         years = user_data["contributionsCollection"]["contributionYears"]
-    except requests.exceptions.RequestException as e:
+    except APIError as e:
         raise FetchError(f"Failed to fetch contribution years: {e}")
 
     return sorted(years, reverse=True)[:5]
@@ -476,7 +475,7 @@ def _process_year_contributions(
 
                 raw_repos_map[name][stat_key] += count
 
-    except requests.exceptions.RequestException:
+    except APIError:
         # Continue to next year on error
         return
 

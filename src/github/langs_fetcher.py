@@ -2,11 +2,9 @@
 
 from dataclasses import dataclass
 
-import requests  # type: ignore
-
 from ..core.config import LangsFetchConfig
 from ..core.constants import DEFAULT_LANG_COLOR
-from ..core.exceptions import LanguageFetchError
+from ..core.exceptions import APIError, LanguageFetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
 
@@ -63,7 +61,7 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
 
     try:
         data = client.graphql_query(query, {"login": username})
-    except requests.RequestException as e:
+    except APIError as e:
         raise LanguageFetchError(f"Failed to fetch data from GitHub API: {e}") from e
 
     if "errors" in data:
