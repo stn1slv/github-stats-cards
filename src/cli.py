@@ -6,7 +6,7 @@ import sys
 import click
 
 from .core.config import (
-    FetchConfig,
+    UserStatsFetchConfig,
     LangsFetchConfig,
     LangsCardConfig,
     UserStatsCardConfig,
@@ -272,7 +272,7 @@ def user_stats(
     """
     try:
         # Create fetch configuration
-        fetch_config = FetchConfig.from_cli_args(
+        fetch_config = UserStatsFetchConfig.from_cli_args(
             username=username,
             token=token,
             include_all_commits=include_all_commits,

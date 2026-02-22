@@ -4,7 +4,7 @@ import base64
 from typing import TypedDict, Any
 
 from ..core.constants import API_BASE_URL
-from ..core.config import ContribFetchConfig, FetchConfig
+from ..core.config import ContribFetchConfig, UserStatsFetchConfig
 from ..core.exceptions import APIError, FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
@@ -47,7 +47,7 @@ class UserStats(TypedDict):
     discussionsAnswered: int
 
 
-def fetch_user_stats(config: FetchConfig) -> UserStats:
+def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
     """
     Fetch GitHub user statistics via GraphQL and REST APIs.
 

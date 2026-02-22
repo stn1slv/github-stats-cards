@@ -118,8 +118,8 @@ class LangsCardConfig(CardStyleConfig):
 
 
 @dataclass
-class FetchConfig(BaseConfig):
-    """Configuration for fetching GitHub data."""
+class UserStatsFetchConfig(BaseConfig):
+    """Configuration for fetching user stats data."""
 
     username: str
     token: str
