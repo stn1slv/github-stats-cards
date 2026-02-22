@@ -29,7 +29,7 @@ The project uses `uv` for all lifecycle tasks.
 *   **Run the CLI (Development):**
     ```bash
     # Generate Stats Card
-    uv run github-stats-card stats -u <username> -o stats.svg
+    uv run github-stats-card user-stats -u <username> -o stats.svg
 
     # Generate Top Languages Card
     uv run github-stats-card top-langs -u <username> -o langs.svg
@@ -65,7 +65,36 @@ The project uses `uv` for all lifecycle tasks.
 ## Active Technologies
 - Python 3.13+ (Managed by `uv`) + Click (CLI), Requests (API), Built-in XML/SVG libraries
 
+## Architecture Decisions
+
+### `GitHubClient` is the sole HTTP boundary (2026-02-22)
+- **Decision:** `GitHubClient` catches all `requests.exceptions.RequestException` and re-raises as `APIError`. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `requests`.
+- **Rationale:** Prevents the HTTP library from leaking into domain logic. Swapping `requests` for `httpx` in the future only touches `client.py`.
+- **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `requests.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
+
+### Config class hierarchy (2026-02-22)
+- **Decision:** `CardStyleConfig(BaseConfig)` holds 11 shared visual fields (theme, colors, border, animations). All card render configs inherit from it. Fetch configs inherit directly from `BaseConfig`.
+- **Rationale:** Eliminates duplication of common fields across `UserStatsCardConfig`, `LangsCardConfig`, `ContribCardConfig`. Inheritance chosen over composition because the fields are always used together and the hierarchy is flat (one level).
+- **Gotcha:** Do not add fetch-related fields (e.g., `limit`, `exclude_repo`) to render configs. These belong in the corresponding `*FetchConfig` only — strict separation of fetch vs. render concerns.
+
+### Config naming convention (2026-02-22)
+- **Decision:** Config pairs are named `{Domain}CardConfig` / `{Domain}FetchConfig`: `UserStatsCardConfig`/`UserStatsFetchConfig`, `LangsCardConfig`/`LangsFetchConfig`, `ContribCardConfig`/`ContribFetchConfig`.
+- **Rationale:** Makes the purpose of each config unambiguous at a glance and maintains symmetry as new card types are added.
+
+### Backward-compatible CLI aliases via `AliasGroup` (2026-02-22)
+- **Decision:** The `stats` command was renamed to `user-stats`. Old name kept via a custom `AliasGroup` Click subclass that maps aliases to canonical names before dispatch.
+- **Rationale:** `AliasGroup` avoids duplicating the entire command definition. A simple `COMMAND_ALIASES` dict is the single source of truth for all aliases.
+- **Gotcha:** Adding a new alias requires only a dict entry in `COMMAND_ALIASES` — do not register a second Click command.
+
 ## Recent Changes
+### [Code Quality Refactor] (2026-02-22)
+- Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
+- Extracted `CardStyleConfig` base class; unified fetcher APIs to accept config objects.
+- Moved HTTP error handling into `GitHubClient`; removed `import requests` from fetchers.
+- Decomposed `fetch_contributor_stats()` into `_fetch_contribution_years()`, `_process_year_contributions()`, `_build_contributor_repos()`.
+- Renamed `FetchConfig` → `UserStatsFetchConfig` for naming consistency.
+- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `requests`.
+
 ### [Rework Ranking] (2026-02-20)
 - Updated `contrib` card ranking logic to be repository-centric.
 - Rank is now based on **Stars** (Base) + **Repo Total Commits** (Modifier).

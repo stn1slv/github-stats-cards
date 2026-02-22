@@ -38,7 +38,7 @@ def render_card(
         body: SVG content for the card body
         width: Card width in pixels
         height: Card height in pixels
-        colors: Color dictionary (titleColor, textColor, bgColor, borderColor, iconColor)
+        colors: Color dictionary (title_color, text_color, bg_color, border_color, icon_color)
         hide_title: Whether to hide the title
         hide_border: Whether to hide the border
         border_radius: Border radius in pixels
@@ -51,11 +51,11 @@ def render_card(
     """
     colors = colors or {}
 
-    title_color = colors.get("titleColor", "#2f80ed")
-    text_color = colors.get("textColor", "#434d58")
-    bg_color = colors.get("bgColor", "#fffefe")
-    border_color = colors.get("borderColor", "#e4e2e2")
-    icon_color = colors.get("iconColor", "#4c71f2")
+    title_color = colors.get("title_color", "#2f80ed")
+    text_color = colors.get("text_color", "#434d58")
+    bg_color = colors.get("bg_color", "#fffefe")
+    border_color = colors.get("border_color", "#e4e2e2")
+    icon_color = colors.get("icon_color", "#4c71f2")
 
     # Handle gradient background
     gradient_def = ""
@@ -96,7 +96,7 @@ def render_card(
         rank_text_animation = f"animation: scaleInAnimation {ANIMATION_SCALE_DURATION_MS / 1000}s ease-in-out forwards;"
 
     # Get ring color for rank circle CSS
-    ring_color_val = colors.get("ringColor") or title_color
+    ring_color_val = colors.get("ring_color") or title_color
     if isinstance(ring_color_val, list):
         ring_color = f"#{ring_color_val[1]}"
     else:

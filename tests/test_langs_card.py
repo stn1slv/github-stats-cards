@@ -22,23 +22,44 @@ def sample_langs():
     }
 
 
-def test_format_bytes():
-    assert format_bytes(0) == "0 B"
-    assert format_bytes(1024) == "1.0 KB"
-    assert format_bytes(1024 * 1024) == "1.0 MB"
+@pytest.mark.parametrize(
+    "size,expected",
+    [
+        (0, "0 B"),
+        (1024, "1.0 KB"),
+        (1024 * 1024, "1.0 MB"),
+    ],
+)
+def test_format_bytes(size: int, expected: str):
+    assert format_bytes(size) == expected
+
+
+def test_format_bytes_negative():
     with pytest.raises(ValueError):
         format_bytes(-1)
 
 
-def test_get_display_value():
-    assert get_display_value(1024, 50.5, "bytes") == "1.0 KB"
-    assert get_display_value(1024, 50.5, "percentages") == "50.5%"
+@pytest.mark.parametrize(
+    "fmt,expected",
+    [
+        ("bytes", "1.0 KB"),
+        ("percentages", "50.5%"),
+    ],
+)
+def test_get_display_value(fmt: str, expected: str):
+    assert get_display_value(1024, 50.5, fmt) == expected
 
 
-def test_get_default_langs_count():
-    assert get_default_langs_count("normal") == 5
-    assert get_default_langs_count("compact") == 6
-    assert get_default_langs_count("invalid") == 5
+@pytest.mark.parametrize(
+    "layout,expected",
+    [
+        ("normal", 5),
+        ("compact", 6),
+        ("invalid", 5),
+    ],
+)
+def test_get_default_langs_count(layout: str, expected: int):
+    assert get_default_langs_count(layout) == expected
 
 
 def test_trim_top_languages(sample_langs):
@@ -64,22 +85,18 @@ def test_render_top_languages_basic(sample_langs):
     assert "TypeScript" in svg
 
 
-def test_render_top_languages_compact(sample_langs):
-    config = LangsCardConfig(layout="compact")
+@pytest.mark.parametrize(
+    "layout,marker",
+    [
+        ("compact", 'mask="url(#rect-mask)"'),
+        ("donut", 'stroke-width="25"'),
+        ("pie", 'data-testid="lang-pie"'),
+    ],
+)
+def test_render_top_languages_layout(sample_langs, layout: str, marker: str):
+    config = LangsCardConfig(layout=layout)
     svg = render_top_languages(sample_langs, config)
-    assert 'mask="url(#rect-mask)"' in svg
-
-
-def test_render_top_languages_donut(sample_langs):
-    config = LangsCardConfig(layout="donut")
-    svg = render_top_languages(sample_langs, config)
-    assert 'stroke-width="25"' in svg
-
-
-def test_render_top_languages_pie(sample_langs):
-    config = LangsCardConfig(layout="pie")
-    svg = render_top_languages(sample_langs, config)
-    assert 'data-testid="lang-pie"' in svg
+    assert marker in svg
 
 
 def test_render_top_languages_hide_languages(sample_langs):
@@ -112,8 +129,8 @@ def test_render_top_languages_hide_border(sample_langs):
 def test_render_top_languages_theme(sample_langs):
     config = LangsCardConfig(theme="radical")
     svg = render_top_languages(sample_langs, config)
-    assert "#fe428e" in svg  # titleColor
-    assert "#141321" in svg  # bgColor
+    assert "#fe428e" in svg  # title_color
+    assert "#141321" in svg  # bg_color
 
 
 def test_render_top_languages_custom_colors(sample_langs):

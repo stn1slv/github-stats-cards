@@ -40,7 +40,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
     body = []
 
     if num_items == 0:
-        text_color = colors["textColor"]
+        text_color = colors["text_color"]
         body.append(
             f'<text x="25" y="15" class="stat bold" fill="{text_color}">No contributions found</text>'
         )
@@ -71,7 +71,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             else:
                 # Fallback circle
                 body.append(f"""
-                <circle cx="10" cy="17.5" r="10" fill="{colors['iconColor']}" opacity="0.5" />
+                <circle cx="10" cy="17.5" r="10" fill="{colors['icon_color']}" opacity="0.5" />
                 """)
 
             # 2. Repo Name (centered vertically: baseline at ~22)
@@ -87,7 +87,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             rank = repo["rank_level"]
 
             # Use ring color from theme or fallback to title color
-            ring_color = colors.get("ringColor", colors["titleColor"])
+            ring_color = colors.get("ring_color", colors["title_color"])
 
             rank_size = 8 if len(rank) > 1 else 10
 

@@ -5,6 +5,7 @@ from typing import Any, cast
 import requests  # type: ignore
 
 from ..core.constants import API_TIMEOUT, GRAPHQL_ENDPOINT
+from ..core.exceptions import APIError
 
 
 class GitHubClient:
@@ -29,16 +30,19 @@ class GitHubClient:
             JSON response data
 
         Raises:
-            requests.exceptions.RequestException: If API request fails
+            APIError: If API request fails
         """
-        response = requests.post(
-            GRAPHQL_ENDPOINT,
-            json={"query": query, "variables": variables or {}},
-            headers=self.headers,
-            timeout=API_TIMEOUT,
-        )
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = requests.post(
+                GRAPHQL_ENDPOINT,
+                json={"query": query, "variables": variables or {}},
+                headers=self.headers,
+                timeout=API_TIMEOUT,
+            )
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except requests.exceptions.RequestException as e:
+            raise APIError(f"GitHub API request failed: {e}") from e
 
     def rest_get(self, url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
         """
@@ -52,19 +56,22 @@ class GitHubClient:
             JSON response data
 
         Raises:
-            requests.exceptions.RequestException: If API request fails
+            APIError: If API request fails
         """
         request_headers = self.headers.copy()
         if headers:
             request_headers.update(headers)
 
-        response = requests.get(
-            url,
-            headers=request_headers,
-            timeout=API_TIMEOUT,
-        )
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = requests.get(
+                url,
+                headers=request_headers,
+                timeout=API_TIMEOUT,
+            )
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except requests.exceptions.RequestException as e:
+            raise APIError(f"GitHub API request failed: {e}") from e
 
     def fetch_image(self, url: str) -> bytes | None:
         """

@@ -8,8 +8,6 @@ class TestContribCardConfig:
     def test_default_values(self):
         """Test default values for ContribCardConfig."""
         config = ContribCardConfig()
-        assert config.limit == 10
-        assert config.exclude_repo == []
         assert config.theme == "default"
         assert config.card_width == 467
         assert config.border_radius == 4.5
@@ -20,22 +18,18 @@ class TestContribCardConfig:
     def test_cli_args_parsing(self):
         """Test creating config from CLI arguments."""
         config = ContribCardConfig.from_cli_args(
-            limit=5,
-            exclude_repo="owner/repo1,owner/repo2",
             theme="dark",
             hide_border=True,
             card_width=500,
         )
-        assert config.limit == 5
-        assert config.exclude_repo == ["owner/repo1", "owner/repo2"]
         assert config.theme == "dark"
         assert config.hide_border is True
         assert config.card_width == 500
 
     def test_none_values_ignored(self):
         """Test that None values in CLI args are ignored."""
-        config = ContribCardConfig.from_cli_args(limit=None, theme="dark")
-        assert config.limit == 10  # Default value
+        config = ContribCardConfig.from_cli_args(theme="dark")
+        assert config.card_width == 467  # Default value
         assert config.theme == "dark"
 
 

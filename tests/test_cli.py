@@ -5,11 +5,41 @@ from click.testing import CliRunner
 from src.cli import cli
 
 
-def test_stats_command():
+def test_user_stats_command():
     runner = CliRunner()
     with (
-        patch("src.cli.fetch_stats") as mock_fetch,
-        patch("src.cli.render_stats_card") as mock_render,
+        patch("src.cli.fetch_user_stats") as mock_fetch,
+        patch("src.cli.render_user_stats_card") as mock_render,
+    ):
+
+        mock_fetch.return_value = {
+            "name": "User",
+            "login": "user",
+            "totalStars": 100,
+            "totalCommits": 50,
+            "totalPRs": 10,
+            "mergedPRs": 5,
+            "totalIssues": 20,
+            "contributedTo": 5,
+            "followers": 10,
+            "totalReviews": 2,
+            "discussionsStarted": 0,
+            "discussionsAnswered": 0,
+        }
+        mock_render.return_value = "<svg>stats</svg>"
+
+        result = runner.invoke(cli, ["user-stats", "-u", "user", "-t", "token", "-o", "stats.svg"])
+
+        assert result.exit_code == 0
+        assert "Generated" in result.stderr
+
+
+def test_stats_alias_command():
+    """Test that 'stats' still works as a backward-compatible alias for 'user-stats'."""
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_user_stats") as mock_fetch,
+        patch("src.cli.render_user_stats_card") as mock_render,
     ):
 
         mock_fetch.return_value = {

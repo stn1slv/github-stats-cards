@@ -6,18 +6,18 @@ import sys
 import click
 
 from .core.config import (
-    FetchConfig,
+    UserStatsFetchConfig,
     LangsFetchConfig,
     LangsCardConfig,
-    StatsCardConfig,
+    UserStatsCardConfig,
     ContribCardConfig,
     ContribFetchConfig,
 )
 from .core.exceptions import FetchError, LanguageFetchError
-from .github.fetcher import fetch_stats, fetch_contributor_stats
+from .github.fetcher import fetch_user_stats, fetch_contributor_stats
 from .github.langs_fetcher import fetch_top_languages
 from .rendering.langs import render_top_languages
-from .rendering.stats import render_stats_card
+from .rendering.user_stats import render_user_stats_card
 from .rendering.contrib import render_contrib_card
 
 # Weighting presets for language ranking
@@ -29,13 +29,50 @@ WEIGHTING_PRESETS = {
 }
 
 
-@click.group()
+# Command aliases for backward compatibility
+COMMAND_ALIASES = {
+    "stats": "user-stats",
+}
+
+
+class AliasGroup(click.Group):
+    """Click group that supports command aliases for backward compatibility."""
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        # Resolve alias to canonical name
+        canonical = COMMAND_ALIASES.get(cmd_name, cmd_name)
+        return super().get_command(ctx, canonical)
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        cmd_name, cmd, remaining = super().resolve_command(ctx, args)
+        # Resolve alias so help text shows the canonical name
+        if cmd_name and cmd_name in COMMAND_ALIASES:
+            canonical = COMMAND_ALIASES[cmd_name]
+            cmd = super().get_command(ctx, canonical)
+            cmd_name = canonical
+        return cmd_name, cmd, remaining
+
+
+def _write_svg_file(svg: str, output: str) -> None:
+    """Write SVG content to file, creating parent directories as needed."""
+    output_path = os.path.abspath(output)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+
+    click.echo(f"✅ Generated {output_path}", err=True)
+
+
+@click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
     pass
 
 
-@cli.command(name="stats")
+@cli.command(name="user-stats")
 @click.option(
     "--username",
     "-u",
@@ -178,7 +215,7 @@ def cli() -> None:
     default=True,
     help="Use bold text (default: yes)",
 )
-def stats(
+def user_stats(
     username: str,
     token: str,
     output: str,
@@ -209,7 +246,7 @@ def stats(
     text_bold: bool,
 ) -> None:
     """
-    Generate GitHub Stats Card SVG.
+    Generate GitHub User Stats Card SVG.
     
     This tool fetches your GitHub statistics and generates a beautiful
     SVG card that you can embed in your README.md or profile.
@@ -218,21 +255,24 @@ def stats(
     
       # Basic usage with environment variable
       export GITHUB_TOKEN=ghp_xxxxx
-      github-stats-card -u octocat -o stats.svg
+      github-stats-card user-stats -u octocat -o stats.svg
       
       # With theme and custom options
-      github-stats-card -u octocat -o stats.svg --theme vue-dark \\
+      github-stats-card user-stats -u octocat -o stats.svg --theme vue-dark \\
         --show-icons --hide-border --include-all-commits
       
       # Hide specific stats
-      github-stats-card -u octocat -o stats.svg --hide stars,prs
+      github-stats-card user-stats -u octocat -o stats.svg --hide stars,prs
       
       # Show additional stats
-      github-stats-card -u octocat -o stats.svg --show reviews,discussions_started
+      github-stats-card user-stats -u octocat -o stats.svg --show reviews,discussions_started
+      
+      # Backward-compatible alias
+      github-stats-card stats -u octocat -o stats.svg
     """
     try:
         # Create fetch configuration
-        fetch_config = FetchConfig.from_cli_args(
+        fetch_config = UserStatsFetchConfig.from_cli_args(
             username=username,
             token=token,
             include_all_commits=include_all_commits,
@@ -242,18 +282,14 @@ def stats(
 
         # Fetch stats from GitHub
         click.echo(f"Fetching GitHub stats for {username}...", err=True)
-        stats = fetch_stats(
-            username=fetch_config.username,
-            token=fetch_config.token,
-            include_all_commits=fetch_config.include_all_commits,
-            commits_year=fetch_config.commits_year,
-            show=fetch_config.show,
+        user_stats_data = fetch_user_stats(fetch_config)
+
+        click.echo(
+            f"Found stats for {user_stats_data['name']} (@{user_stats_data['login']})", err=True
         )
 
-        click.echo(f"Found stats for {stats['name']} (@{stats['login']})", err=True)
-
         # Create rendering configuration
-        render_config = StatsCardConfig.from_cli_args(
+        render_config = UserStatsCardConfig.from_cli_args(
             theme=theme,
             show_icons=show_icons,
             hide_border=hide_border,
@@ -282,16 +318,8 @@ def stats(
 
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
-        svg = render_stats_card(stats, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        svg = render_user_stats_card(user_stats_data, render_config)
+        _write_svg_file(svg, output)
 
     except FetchError as e:
         click.echo(f"❌ Error fetching data: {e}", err=True)
@@ -502,13 +530,7 @@ def top_langs(
 
         # Fetch languages from GitHub
         click.echo(f"Fetching language data for {username}...", err=True)
-        top_languages = fetch_top_languages(
-            username=fetch_config.username,
-            token=fetch_config.token,
-            exclude_repo=fetch_config.exclude_repo,
-            size_weight=fetch_config.size_weight,
-            count_weight=fetch_config.count_weight,
-        )
+        top_languages = fetch_top_languages(fetch_config)
 
         if not top_languages:
             click.echo("⚠️  No languages found", err=True)
@@ -538,15 +560,7 @@ def top_langs(
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
         svg = render_top_languages(top_languages, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        _write_svg_file(svg, output)
 
     except LanguageFetchError as e:
         click.echo(f"❌ Error fetching language data: {e}", err=True)
@@ -694,8 +708,6 @@ def contrib(
 
         # Create rendering configuration
         render_config = ContribCardConfig.from_cli_args(
-            limit=limit,
-            exclude_repo=exclude_repo,
             theme=theme,
             hide_border=hide_border,
             hide_title=hide_title,
@@ -712,15 +724,7 @@ def contrib(
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
         svg = render_contrib_card(stats, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        _write_svg_file(svg, output)
 
     except FetchError as e:
         click.echo(f"❌ Error fetching data: {e}", err=True)

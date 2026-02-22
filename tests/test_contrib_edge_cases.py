@@ -4,18 +4,6 @@ from src.core.config import ContribCardConfig
 from src.rendering.contrib import render_contrib_card
 
 
-def test_fetch_empty_repos():
-    """Test fetcher behavior when no contributions are found."""
-    # This is handled by mock in integration tests,
-    # but we can test the internal filtering logic if needed.
-    pass
-
-
-def test_fetch_all_excluded():
-    """Test when all found repos are excluded."""
-    pass
-
-
 def test_render_empty_state():
     """Test rendering of the card with no repositories."""
     stats = {"repos": []}
@@ -45,7 +33,7 @@ def test_render_limit_handling():
         ]
     }
     # Rendering relies on pre-sliced stats, but ensure it handles whatever is passed
-    config = ContribCardConfig(limit=5)
+    config = ContribCardConfig()
 
     svg = render_contrib_card(stats, config)
 

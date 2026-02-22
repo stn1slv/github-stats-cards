@@ -92,27 +92,27 @@ def get_card_colors(
     default_theme = THEMES["default"]
 
     return {
-        "titleColor": parse_color(
+        "title_color": parse_color(
             title_color or selected_theme.get("title_color"),
             f"#{default_theme['title_color']}",
         ),
-        "textColor": parse_color(
+        "text_color": parse_color(
             text_color or selected_theme.get("text_color"),
             f"#{default_theme['text_color']}",
         ),
-        "iconColor": parse_color(
+        "icon_color": parse_color(
             icon_color or selected_theme.get("icon_color"),
             f"#{default_theme['icon_color']}",
         ),
-        "bgColor": parse_color(
+        "bg_color": parse_color(
             bg_color or selected_theme.get("bg_color"),
             f"#{default_theme['bg_color']}",
         ),
-        "borderColor": parse_color(
+        "border_color": parse_color(
             border_color or selected_theme.get("border_color", default_theme["border_color"]),
             f"#{default_theme['border_color']}",
         ),
-        "ringColor": parse_color(
+        "ring_color": parse_color(
             ring_color or selected_theme.get("ring_color") or selected_theme.get("title_color"),
             f"#{default_theme['title_color']}",
         ),

@@ -95,10 +95,10 @@ uv run mypy src
 
 ```bash
 # Test basic functionality
-uv run github-stats-card stats -u octocat -o test.svg
+uv run github-stats-card user-stats -u octocat -o test.svg
 
 # Test with different themes
-uv run github-stats-card stats -u octocat -o test.svg --theme dark --show-icons
+uv run github-stats-card user-stats -u octocat -o test.svg --theme dark --show-icons
 ```
 
 ## Project Structure
@@ -122,7 +122,7 @@ github-stats-card/
 │   │   ├── colors.py         # Color parsing and utilities
 │   │   ├── icons.py          # SVG icon definitions
 │   │   ├── langs.py          # Top languages card renderer
-│   │   ├── stats.py          # Stats card renderer
+│   │   ├── user_stats.py      # User stats card renderer
 │   │   └── themes.py         # Built-in color schemes
 │   ├── cli.py                # Command-line interface
 │   ├── __init__.py           # Package initialization
@@ -132,7 +132,7 @@ github-stats-card/
 │   ├── test_langs_card.py
 │   ├── test_langs_fetcher.py
 │   ├── test_rank.py
-│   ├── test_stats_card.py
+│   ├── test_user_stats_card.py
 │   └── test_utils.py
 ├── .github/workflows/        # GitHub Actions
 ├── pyproject.toml            # Package configuration
@@ -158,7 +158,7 @@ github-stats-card/
 3. Test it:
 
    ```bash
-   uv run github-stats-card stats -u octocat -o test.svg --theme my_theme
+   uv run github-stats-card user-stats -u octocat -o test.svg --theme my_theme
    ```
 
 ### Adding a New Icon
@@ -176,7 +176,7 @@ github-stats-card/
 1. Update `src/github/fetcher.py` to fetch the new data from GitHub API
 2. Update `src/core/i18n.py` to add the translation key
 3. Update `src/rendering/stats.py` to include it in `_get_stat_definitions`
-4. Add tests in `tests/test_stats_card.py`
+4. Add tests in `tests/test_user_stats_card.py`
 
 ### Adding a Translation
 
@@ -224,9 +224,9 @@ We follow conventional commits:
 Example:
 
 ```python
-from src.core.config import StatsCardConfig
+from src.core.config import UserStatsCardConfig
 
-def render_stats_card(stats: dict[str, Any], config: StatsCardConfig) -> str:
+def render_stats_card(stats: dict[str, Any], config: UserStatsCardConfig) -> str:
     """
     Render GitHub stats as an SVG card.
     
@@ -245,12 +245,12 @@ def render_stats_card(stats: dict[str, Any], config: StatsCardConfig) -> str:
 All rendering functions use configuration objects instead of individual parameters:
 
 ```python
-from src.core.config import StatsCardConfig, LangsCardConfig
-from src.rendering.stats import render_stats_card
+from src.core.config import UserStatsCardConfig, LangsCardConfig
+from src.rendering.user_stats import render_user_stats_card
 from src.rendering.langs import render_top_languages
 
-stats_config = StatsCardConfig(theme="vue-dark", show_icons=True)
-svg = render_stats_card(stats, stats_config)
+stats_config = UserStatsCardConfig(theme="vue-dark", show_icons=True)
+svg = render_user_stats_card(stats, stats_config)
 
 langs_config = LangsCardConfig(layout="compact", langs_count=8)
 svg = render_top_languages(langs, langs_config)
