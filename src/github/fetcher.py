@@ -315,254 +315,207 @@ def fetch_user_stats(config: FetchConfig) -> UserStats:
     }
 
 
-def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
-    """
-    Fetch contributor statistics (repos contributed to).
+_CONTRIB_YEARS_QUERY = """
+query userYears($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      contributionYears
+    }
+  }
+}
+"""
 
-    Args:
-        config: Fetch configuration
-
-    Returns:
-        Contributor statistics
-
-    Raises:
-        FetchError: If API request fails
-    """
-    client = GitHubClient(config.token)
-
-    # 1. Get contribution years to iterate over
-    years_query = """
-    query userYears($login: String!) {
-      user(login: $login) {
-        contributionsCollection {
-          contributionYears
+# Single GraphQL fragment shared by all four contribution types.
+_REPO_FRAGMENT = """
+  repository {
+    nameWithOwner
+    isPrivate
+    owner {
+      login
+      avatarUrl
+    }
+    stargazers {
+      totalCount
+    }
+    object(expression: "HEAD") {
+      ... on Commit {
+        history {
+          totalCount
         }
       }
     }
+  }
+  contributions {
+    totalCount
+  }
+"""
+
+_CONTRIB_QUERY = f"""
+query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {{
+  user(login: $login) {{
+    contributionsCollection(from: $from, to: $to) {{
+      commitContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}
+      pullRequestContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}
+      issueContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}
+      pullRequestReviewContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}
+    }}
+  }}
+}}
+"""
+
+
+def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
+    """Fetch the years in which a user has made contributions.
+
+    Args:
+        client: Authenticated GitHub API client
+        username: GitHub username
+
+    Returns:
+        List of contribution years (most recent first, up to 5)
+
+    Raises:
+        FetchError: If API request fails or user not found
     """
     try:
-        data = client.graphql_query(years_query, {"login": config.username})
+        data = client.graphql_query(_CONTRIB_YEARS_QUERY, {"login": username})
         if "errors" in data:
             raise FetchError(f"GraphQL error: {data['errors'][0].get('message')}")
 
         user_data = data.get("data", {}).get("user")
         if not user_data:
-            raise FetchError(f"User '{config.username}' not found")
+            raise FetchError(f"User '{username}' not found")
 
         years = user_data["contributionsCollection"]["contributionYears"]
     except requests.exceptions.RequestException as e:
         raise FetchError(f"Failed to fetch contribution years: {e}")
 
-    # 2. Iterate over last 5 years to collect repositories
-    # We limit to 5 years to balance performance vs accuracy
-    target_years = sorted(years, reverse=True)[:5]
+    return sorted(years, reverse=True)[:5]
 
-    raw_repos_map: dict[str, dict[str, Any]] = {}
 
-    for year in target_years:
-        from_date = f"{year}-01-01T00:00:00Z"
-        to_date = f"{year}-12-31T23:59:59Z"
+def _process_year_contributions(
+    client: GitHubClient,
+    username: str,
+    year: int,
+    raw_repos_map: dict[str, dict[str, Any]],
+) -> None:
+    """Fetch and merge one year's contribution data into *raw_repos_map*.
 
-        # Note: We fetch total commit count (history) only in commitContributions
-        # to avoid complexity. It serves as a proxy for repo size.
-        col_query = """
-        query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {
-          user(login: $login) {
-            contributionsCollection(from: $from, to: $to) {
-              commitContributionsByRepository(maxRepositories: 100) {
-                repository {
-                  nameWithOwner
-                  isPrivate
-                  owner {
-                    login
-                    avatarUrl
-                  }
-                  stargazers {
-                    totalCount
-                  }
-                  object(expression: "HEAD") {
-                    ... on Commit {
-                      history {
-                        totalCount
-                      }
+    The map is mutated in-place: new repos are added and existing ones have
+    their contribution counts accumulated.
+
+    Args:
+        client: Authenticated GitHub API client
+        username: GitHub username
+        year: Calendar year to fetch
+        raw_repos_map: Mutable accumulator mapping ``nameWithOwner`` to repo data
+    """
+    from_date = f"{year}-01-01T00:00:00Z"
+    to_date = f"{year}-12-31T23:59:59Z"
+
+    try:
+        c_data = client.graphql_query(
+            _CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date}
+        )
+
+        if "errors" in c_data:
+            return
+
+        collection = c_data.get("data", {}).get("user", {}).get("contributionsCollection")
+        if not collection:
+            return
+
+        _CONTRIB_TYPES = [
+            ("commitContributionsByRepository", "commits"),
+            ("pullRequestContributionsByRepository", "prs"),
+            ("issueContributionsByRepository", "issues"),
+            ("pullRequestReviewContributionsByRepository", "reviews"),
+        ]
+
+        for query_key, stat_key in _CONTRIB_TYPES:
+            for item in collection.get(query_key, []):
+                repo = item["repository"]
+                count = item["contributions"]["totalCount"]
+
+                if count == 0 or repo["isPrivate"]:
+                    continue
+                if repo["owner"]["login"].lower() == username.lower():
+                    continue
+
+                name = repo["nameWithOwner"]
+
+                if name not in raw_repos_map:
+                    total_repo_commits = 0
+                    obj = repo.get("object")
+                    if obj and "history" in obj:
+                        total_repo_commits = obj["history"]["totalCount"]
+
+                    raw_repos_map[name] = {
+                        "name": name,
+                        "stars": repo["stargazers"]["totalCount"],
+                        "avatar_url": repo["owner"]["avatarUrl"],
+                        "commits": 0,
+                        "prs": 0,
+                        "issues": 0,
+                        "reviews": 0,
+                        "total_repo_commits": total_repo_commits,
                     }
-                  }
-                }
-                contributions {
-                  totalCount
-                }
-              }
-              pullRequestContributionsByRepository(maxRepositories: 100) {
-                repository {
-                  nameWithOwner
-                  isPrivate
-                  owner {
-                    login
-                    avatarUrl
-                  }
-                  stargazers {
-                    totalCount
-                  }
-                  object(expression: "HEAD") {
-                    ... on Commit {
-                      history {
-                        totalCount
-                      }
-                    }
-                  }
-                }
-                contributions {
-                  totalCount
-                }
-              }
-              issueContributionsByRepository(maxRepositories: 100) {
-                repository {
-                  nameWithOwner
-                  isPrivate
-                  owner {
-                    login
-                    avatarUrl
-                  }
-                  stargazers {
-                    totalCount
-                  }
-                  object(expression: "HEAD") {
-                    ... on Commit {
-                      history {
-                        totalCount
-                      }
-                    }
-                  }
-                }
-                contributions {
-                  totalCount
-                }
-              }
-              pullRequestReviewContributionsByRepository(maxRepositories: 100) {
-                repository {
-                  nameWithOwner
-                  isPrivate
-                  owner {
-                    login
-                    avatarUrl
-                  }
-                  stargazers {
-                    totalCount
-                  }
-                  object(expression: "HEAD") {
-                    ... on Commit {
-                      history {
-                        totalCount
-                      }
-                    }
-                  }
-                }
-                contributions {
-                  totalCount
-                }
-              }
-            }
-          }
-        }
-        """
-
-        try:
-            c_data = client.graphql_query(
-                col_query, {"login": config.username, "from": from_date, "to": to_date}
-            )
-
-            if "errors" in c_data:
-                # Log error and continue to next year
-                continue
-
-            user_data = c_data.get("data", {}).get("user")
-            if not user_data:
-                continue
-
-            collection = user_data.get("contributionsCollection")
-            if not collection:
-                continue
-
-            # Helper to process a contribution list
-            def process_list(items: list[dict[str, Any]], contrib_type: str) -> None:
-                for item in items:
-                    repo = item["repository"]
-                    name = repo["nameWithOwner"]
-                    count = item["contributions"]["totalCount"]
-
-                    if count == 0:
-                        continue
-
-                    # Filter private
-                    if repo["isPrivate"]:
-                        continue
-
-                    # Filter user's own repos
-                    if repo["owner"]["login"].lower() == config.username.lower():
-                        continue
-
-                    # Initialize or update repo data
-                    if name not in raw_repos_map:
-                        # Extract repo total commits if available (only in commitContributions)
-                        total_repo_commits = 0
+                else:
+                    if raw_repos_map[name]["total_repo_commits"] == 0:
                         obj = repo.get("object")
                         if obj and "history" in obj:
-                            total_repo_commits = obj["history"]["totalCount"]
+                            raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
 
-                        raw_repos_map[name] = {
-                            "name": name,
-                            "stars": repo["stargazers"]["totalCount"],
-                            "avatar_url": repo["owner"]["avatarUrl"],
-                            "commits": 0,
-                            "prs": 0,
-                            "issues": 0,
-                            "reviews": 0,
-                            "total_repo_commits": total_repo_commits,
-                        }
-                    else:
-                        # Update total_repo_commits if we found it now but didn't have it before
-                        # (e.g. first found via PRs, now via Commits)
-                        if raw_repos_map[name]["total_repo_commits"] == 0:
-                            obj = repo.get("object")
-                            if obj and "history" in obj:
-                                raw_repos_map[name]["total_repo_commits"] = obj["history"][
-                                    "totalCount"
-                                ]
+                raw_repos_map[name][stat_key] += count
 
-                    raw_repos_map[name][contrib_type] += count
+    except requests.exceptions.RequestException:
+        # Continue to next year on error
+        return
 
-            process_list(collection["commitContributionsByRepository"], "commits")
-            process_list(collection["pullRequestContributionsByRepository"], "prs")
-            process_list(collection["issueContributionsByRepository"], "issues")
-            process_list(collection["pullRequestReviewContributionsByRepository"], "reviews")
 
-        except requests.exceptions.RequestException:
-            # Continue to next year on error
-            continue
+def _build_contributor_repos(
+    client: GitHubClient,
+    raw_repos_map: dict[str, dict[str, Any]],
+    exclude_repo: list[str],
+    limit: int,
+) -> list[ContributorRepo]:
+    """Rank, filter, sort, slice and enrich raw repo data.
 
-    # Calculate ranks for all repositories
-    final_repos_data: list[dict[str, Any]] = []
+    Args:
+        client: Authenticated GitHub API client (for avatar fetching)
+        raw_repos_map: Accumulated raw repo data
+        exclude_repo: Repository name patterns to exclude
+        limit: Maximum number of repos to return
+
+    Returns:
+        Final list of ``ContributorRepo`` dicts ready for rendering
+    """
+    # Calculate ranks
+    repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
         repo_data["rank_level"] = calculate_repo_rank(
             repo_data["stars"], repo_data["total_repo_commits"]
         )
-        final_repos_data.append(repo_data)
+        repos_data.append(repo_data)
 
     # Filter excluded repos
-    final_repos_data = [
-        r for r in final_repos_data if not is_repo_excluded(r["name"], config.exclude_repo)
-    ]
+    repos_data = [r for r in repos_data if not is_repo_excluded(r["name"], exclude_repo)]
 
-    # Sort by stars descending (or maybe by rank? the user said "top X ... based on score (stars amount)")
-    # We'll keep sorting by stars as per original requirement, but display the rank level.
-    final_repos_data.sort(key=lambda r: r["stars"], reverse=True)
+    # Sort by stars descending and limit
+    repos_data.sort(key=lambda r: r["stars"], reverse=True)
+    repos_data = repos_data[:limit]
 
-    # Limit results
-    final_repos_data = final_repos_data[: config.limit]
-
-    # Fetch avatars
+    # Fetch avatars and build final typed list
     final_repos: list[ContributorRepo] = []
-    for repo in final_repos_data:
+    for repo in repos_data:
         avatar_b64 = None
         if repo["avatar_url"]:
             image_data = client.fetch_image(repo["avatar_url"])
@@ -582,4 +535,30 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
             }
         )
 
-    return {"repos": final_repos}
+    return final_repos
+
+
+def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
+    """
+    Fetch contributor statistics (repos contributed to).
+
+    Args:
+        config: Fetch configuration
+
+    Returns:
+        Contributor statistics
+
+    Raises:
+        FetchError: If API request fails
+    """
+    client = GitHubClient(config.token)
+
+    years = _fetch_contribution_years(client, config.username)
+
+    raw_repos_map: dict[str, dict[str, Any]] = {}
+    for year in years:
+        _process_year_contributions(client, config.username, year, raw_repos_map)
+
+    repos = _build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
+
+    return {"repos": repos}

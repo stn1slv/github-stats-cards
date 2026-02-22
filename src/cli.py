@@ -55,6 +55,17 @@ class AliasGroup(click.Group):
         return cmd_name, cmd, remaining
 
 
+def _write_svg_file(svg: str, output: str) -> None:
+    """Write SVG content to file, creating parent directories as needed."""
+    output_path = os.path.abspath(output)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+
+    click.echo(f"✅ Generated {output_path}", err=True)
+
+
 @click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
@@ -308,15 +319,7 @@ def user_stats(
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
         svg = render_user_stats_card(user_stats_data, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        _write_svg_file(svg, output)
 
     except FetchError as e:
         click.echo(f"❌ Error fetching data: {e}", err=True)
@@ -557,15 +560,7 @@ def top_langs(
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
         svg = render_top_languages(top_languages, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        _write_svg_file(svg, output)
 
     except LanguageFetchError as e:
         click.echo(f"❌ Error fetching language data: {e}", err=True)
@@ -729,15 +724,7 @@ def contrib(
         # Render SVG card
         click.echo("Generating SVG card...", err=True)
         svg = render_contrib_card(stats, render_config)
-
-        # Write to file
-        output_path = os.path.abspath(output)
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(svg)
-
-        click.echo(f"✅ Generated {output_path}", err=True)
+        _write_svg_file(svg, output)
 
     except FetchError as e:
         click.echo(f"❌ Error fetching data: {e}", err=True)
