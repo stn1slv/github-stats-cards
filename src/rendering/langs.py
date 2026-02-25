@@ -17,6 +17,7 @@ from ..core.constants import (
     LANGS_DONUT_RADIUS,
     LANGS_PIE_RADIUS,
     ANIMATION_STAGGER_DELAY_MS,
+    FONT_SIZE_LANG,
 )
 from ..github.langs_fetcher import Language
 from ..core.utils import clamp_value, encode_html
@@ -462,7 +463,7 @@ def render_top_languages(
     # Add CSS
     css = f"""
     .lang-name {{
-      font: 400 11px "Segoe UI", Ubuntu, Sans-Serif;
+      font: 400 {FONT_SIZE_LANG}px "Segoe UI", Ubuntu, Sans-Serif;
       fill: {final_text_color};
     }}
     """
