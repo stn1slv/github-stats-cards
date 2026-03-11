@@ -46,7 +46,7 @@ The project uses `uv` for all lifecycle tasks.
 *   **Linting & Formatting:**
     ```bash
     uv run ruff check src tests
-    uv run black src tests
+    uv run ruff format src tests
     ```
 
 *   **Type Checking:**
@@ -56,7 +56,7 @@ The project uses `uv` for all lifecycle tasks.
 
 **Development Conventions**
 
-*   **Code Style:** Strict adherence to PEP 8, enforced by `ruff` and `black`.
+*   **Code Style:** Strict adherence to PEP 8, enforced by `ruff`.
 *   **Type Hinting:** Mandatory use of modern Python type hints (PEP 604 style, e.g., `int | None`). `mypy` must pass in strict mode.
 *   **Testing:** New features must include unit tests. The project maintains high test coverage.
 *   **Modular Design:** Code must reside in the appropriate sub-package (`core`, `github`, or `rendering`). No circular dependencies.

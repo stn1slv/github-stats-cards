@@ -1,11 +1,12 @@
 """Tests for GitHub language data fetching."""
 
 from unittest.mock import patch
+
 import pytest
 
-from src.github.langs_fetcher import fetch_top_languages, Language, LanguageFetchError
 from src.core.config import LangsFetchConfig
 from src.core.exceptions import APIError
+from src.github.langs_fetcher import Language, LanguageFetchError, fetch_top_languages
 
 
 def test_language_dataclass():
@@ -89,9 +90,7 @@ def test_fetch_top_languages_with_weights(MockClient):
     MockClient.return_value.graphql_query.return_value = _make_repos_response(nodes)
 
     # size^0.5 * count^1.0 = (200^0.5) * (2^1.0) = 14.14 * 2 = 28.28 -> 28
-    config = LangsFetchConfig(
-        username="testuser", token="testtoken", size_weight=0.5, count_weight=1.0
-    )
+    config = LangsFetchConfig(username="testuser", token="testtoken", size_weight=0.5, count_weight=1.0)
     result = fetch_top_languages(config)
 
     assert result["Python"].size == 28

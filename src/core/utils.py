@@ -1,6 +1,7 @@
 """Utility functions for formatting and data manipulation."""
 
 import fnmatch
+from typing import Any
 
 from .constants import NUMBER_FORMAT_THOUSAND_DIVISOR
 
@@ -122,7 +123,7 @@ def parse_list_arg(arg: str | list[str] | None) -> list[str]:
     return [s.strip() for s in arg.split(",") if s.strip()]
 
 
-def flex_layout(items: list[dict], gap: int, direction: str = "column") -> str:
+def flex_layout(items: list[dict[str, Any]], gap: int, direction: str = "column") -> str:
     """
     Create flexbox-like layout for SVG elements.
 

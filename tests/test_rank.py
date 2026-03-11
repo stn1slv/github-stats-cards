@@ -3,8 +3,8 @@
 import pytest
 
 from src.github.rank import (
-    calculate_user_rank,
     calculate_repo_rank,
+    calculate_user_rank,
     exponential_cdf,
     log_normal_cdf,
 )
@@ -13,12 +13,12 @@ from src.github.rank import (
 # ---------------------------------------------------------------------------
 # CDF helpers
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("x,expected", [(0, 0), (1, 0.5), (2, 0.75)])
+@pytest.mark.parametrize(("x", "expected"), [(0, 0), (1, 0.5), (2, 0.75)])
 def test_exponential_cdf(x, expected):
     assert exponential_cdf(x) == expected
 
 
-@pytest.mark.parametrize("x,expected", [(0, 0), (1, 0.5), (9, 0.9)])
+@pytest.mark.parametrize(("x", "expected"), [(0, 0), (1, 0.5), (9, 0.9)])
 def test_log_normal_cdf(x, expected):
     assert log_normal_cdf(x) == expected
 
@@ -60,7 +60,7 @@ def test_user_rank_percentile_range():
 # calculate_repo_rank
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "stars,commits,expected",
+    ("stars", "commits", "expected"),
     [
         # S tier (>10000 stars)
         (10001, 5001, "S+"),

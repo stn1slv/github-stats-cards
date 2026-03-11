@@ -2,14 +2,14 @@
 
 import pytest
 
-from src.core.utils import k_formatter, clamp_value, encode_html, parse_list_arg, is_repo_excluded
+from src.core.utils import clamp_value, encode_html, is_repo_excluded, k_formatter, parse_list_arg
 
 
 # ---------------------------------------------------------------------------
 # k_formatter
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "value,kwargs,expected",
+    ("value", "kwargs", "expected"),
     [
         (500, {}, "500"),
         (999, {}, "999"),
@@ -31,7 +31,7 @@ def test_k_formatter(value: int, kwargs: dict, expected: str):
 # clamp_value
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "value,lo,hi,expected",
+    ("value", "lo", "hi", "expected"),
     [
         (5, 0, 10, 5),
         (-5, 0, 10, 0),
@@ -47,7 +47,7 @@ def test_clamp_value(value, lo, hi, expected):
 # encode_html
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "text,expected",
+    ("text", "expected"),
     [
         ("Hello World", "Hello World"),
         ("<script>", "&lt;script&gt;"),
@@ -64,7 +64,7 @@ def test_encode_html(text: str, expected: str):
 # parse_list_arg
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "arg,expected",
+    ("arg", "expected"),
     [
         (None, []),
         ("", []),
@@ -83,7 +83,7 @@ def test_parse_list_arg(arg, expected):
 # is_repo_excluded
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
-    "repo,patterns,expected",
+    ("repo", "patterns", "expected"),
     [
         # Exact match (full name)
         ("owner/repo", ["owner/repo"], True),

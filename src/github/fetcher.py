@@ -1,10 +1,10 @@
 """GitHub API client for fetching user statistics."""
 
 import base64
-from typing import TypedDict, Any
+from typing import Any, TypedDict
 
-from ..core.constants import API_BASE_URL
 from ..core.config import ContribFetchConfig, UserStatsFetchConfig
+from ..core.constants import API_BASE_URL
 from ..core.exceptions import APIError, FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
@@ -190,7 +190,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
             raise FetchError(f"User '{username}' not found")
 
     except APIError as e:
-        raise FetchError(f"Failed to fetch data from GitHub: {e}")
+        raise FetchError(f"Failed to fetch data from GitHub: {e}") from e
 
     # Calculate total stars
     total_stars = sum(repo["stargazers"]["totalCount"] for repo in user["repositories"]["nodes"])
@@ -224,15 +224,11 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
         """
 
         try:
-            page_data = client.graphql_query(
-                pagination_query, {"login": username, "after": end_cursor}
-            )
+            page_data = client.graphql_query(pagination_query, {"login": username, "after": end_cursor})
 
             page_user = page_data.get("data", {}).get("user")
             if page_user:
-                total_stars += sum(
-                    repo["stargazers"]["totalCount"] for repo in page_user["repositories"]["nodes"]
-                )
+                total_stars += sum(repo["stargazers"]["totalCount"] for repo in page_user["repositories"]["nodes"])
                 has_next_page = page_user["repositories"]["pageInfo"]["hasNextPage"]
                 end_cursor = page_user["repositories"]["pageInfo"]["endCursor"]
             else:
@@ -260,9 +256,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
     # Use REST API to get accurate issue count (includes issues in repos user doesn't own)
     total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
     try:
-        issues_data = client.rest_get(
-            f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue"
-        )
+        issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue")
         total_issues = issues_data.get("total_count", total_issues)
     except APIError:
         # If REST API fails, use GraphQL data
@@ -291,9 +285,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
             disc_user = disc_data.get("data", {}).get("user", {})
 
             discussions_started = disc_user.get("repositoryDiscussions", {}).get("totalCount", 0)
-            discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get(
-                "totalCount", 0
-            )
+            discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get("totalCount", 0)
         except APIError:
             # If discussions query fails, continue with zeros
             pass
@@ -395,7 +387,7 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
 
         years = user_data["contributionsCollection"]["contributionYears"]
     except APIError as e:
-        raise FetchError(f"Failed to fetch contribution years: {e}")
+        raise FetchError(f"Failed to fetch contribution years: {e}") from e
 
     return sorted(years, reverse=True)[:5]
 
@@ -421,9 +413,7 @@ def _process_year_contributions(
     to_date = f"{year}-12-31T23:59:59Z"
 
     try:
-        c_data = client.graphql_query(
-            _CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date}
-        )
+        c_data = client.graphql_query(_CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date})
 
         if "errors" in c_data:
             return
@@ -432,15 +422,15 @@ def _process_year_contributions(
         if not collection:
             return
 
-        _CONTRIB_TYPES = [
+        contrib_types = [
             ("commitContributionsByRepository", "commits"),
             ("pullRequestContributionsByRepository", "prs"),
             ("issueContributionsByRepository", "issues"),
             ("pullRequestReviewContributionsByRepository", "reviews"),
         ]
 
-        for query_key, stat_key in _CONTRIB_TYPES:
-            for item in collection.get(query_key, []):
+        for gh_key, stats_key in contrib_types:
+            for item in collection.get(gh_key, []):
                 repo = item["repository"]
                 count = item["contributions"]["totalCount"]
 
@@ -473,7 +463,7 @@ def _process_year_contributions(
                         if obj and "history" in obj:
                             raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
 
-                raw_repos_map[name][stat_key] += count
+                raw_repos_map[name][stats_key] += count
 
     except APIError:
         # Continue to next year on error
@@ -500,9 +490,7 @@ def _build_contributor_repos(
     # Calculate ranks
     repos_data: list[dict[str, Any]] = []
     for repo_data in raw_repos_map.values():
-        repo_data["rank_level"] = calculate_repo_rank(
-            repo_data["stars"], repo_data["total_repo_commits"]
-        )
+        repo_data["rank_level"] = calculate_repo_rank(repo_data["stars"], repo_data["total_repo_commits"])
         repos_data.append(repo_data)
 
     # Filter excluded repos

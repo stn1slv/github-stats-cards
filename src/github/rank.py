@@ -71,50 +71,43 @@ def calculate_user_rank(
         True
     """
     # Median values for normalization
-    COMMITS_MEDIAN = 1000 if all_commits else 250
-    COMMITS_WEIGHT = 2
+    commits_median = 1000 if all_commits else 250
+    commits_weight = 2
 
-    PRS_MEDIAN, PRS_WEIGHT = 50, 3
-    ISSUES_MEDIAN, ISSUES_WEIGHT = 25, 1
-    REVIEWS_MEDIAN, REVIEWS_WEIGHT = 2, 1
-    STARS_MEDIAN, STARS_WEIGHT = 50, 4
-    FOLLOWERS_MEDIAN, FOLLOWERS_WEIGHT = 10, 1
+    prs_median, prs_weight = 50, 3
+    issues_median, issues_weight = 25, 1
+    reviews_median, reviews_weight = 2, 1
+    stars_median, stars_weight = 50, 4
+    followers_median, followers_weight = 10, 1
 
-    TOTAL_WEIGHT = (
-        COMMITS_WEIGHT
-        + PRS_WEIGHT
-        + ISSUES_WEIGHT
-        + REVIEWS_WEIGHT
-        + STARS_WEIGHT
-        + FOLLOWERS_WEIGHT
-    )
+    total_weight = commits_weight + prs_weight + issues_weight + reviews_weight + stars_weight + followers_weight
 
     # Calculate normalized rank (0 = best, 1 = worst)
     rank = (
         1
         - (
-            COMMITS_WEIGHT * exponential_cdf(commits / COMMITS_MEDIAN)
-            + PRS_WEIGHT * exponential_cdf(prs / PRS_MEDIAN)
-            + ISSUES_WEIGHT * exponential_cdf(issues / ISSUES_MEDIAN)
-            + REVIEWS_WEIGHT * exponential_cdf(reviews / REVIEWS_MEDIAN)
-            + STARS_WEIGHT * log_normal_cdf(stars / STARS_MEDIAN)
-            + FOLLOWERS_WEIGHT * log_normal_cdf(followers / FOLLOWERS_MEDIAN)
+            commits_weight * exponential_cdf(commits / commits_median)
+            + prs_weight * exponential_cdf(prs / prs_median)
+            + issues_weight * exponential_cdf(issues / issues_median)
+            + reviews_weight * exponential_cdf(reviews / reviews_median)
+            + stars_weight * log_normal_cdf(stars / stars_median)
+            + followers_weight * log_normal_cdf(followers / followers_median)
         )
-        / TOTAL_WEIGHT
+        / total_weight
     )
 
     # Define thresholds and corresponding levels
-    THRESHOLDS = [1, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100]
-    LEVELS = ["S", "A+", "A", "A-", "B+", "B", "B-", "C+", "C"]
+    thresholds = [1, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100]
+    levels = ["S", "A+", "A", "A-", "B+", "B", "B-", "C+", "C"]
 
     # Convert to percentile (0-100)
     percentile = rank * 100
 
     # Find the appropriate level
     level = "C"  # Default to lowest
-    for i, threshold in enumerate(THRESHOLDS):
+    for i, threshold in enumerate(thresholds):
         if percentile <= threshold:
-            level = LEVELS[i]
+            level = levels[i]
             break
 
     return {"level": level, "percentile": percentile}

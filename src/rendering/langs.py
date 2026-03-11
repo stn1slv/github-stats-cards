@@ -2,25 +2,25 @@
 
 import math
 
-from .base import render_card
-from .colors import get_card_colors
 from ..core.config import LangsCardConfig
 from ..core.constants import (
+    ANIMATION_STAGGER_DELAY_MS,
     CARD_PADDING,
     DEFAULT_LANGS_CARD_WIDTH,
     DEFAULT_LANGS_COMPACT_WIDTH,
-    MAXIMUM_LANGS_COUNT,
-    MIN_CARD_WIDTH,
+    FONT_SIZE_LANG,
     LANGS_COMPACT_COLUMN_WIDTH,
     LANGS_COMPACT_COLUMN_WIDTH_WIDE,
     LANGS_COMPACT_ROW_HEIGHT,
     LANGS_DONUT_RADIUS,
     LANGS_PIE_RADIUS,
-    ANIMATION_STAGGER_DELAY_MS,
-    FONT_SIZE_LANG,
+    MAXIMUM_LANGS_COUNT,
+    MIN_CARD_WIDTH,
 )
-from ..github.langs_fetcher import Language
 from ..core.utils import clamp_value, encode_html
+from ..github.langs_fetcher import Language
+from .base import render_card
+from .colors import get_card_colors
 
 
 def trim_top_languages(
@@ -80,10 +80,10 @@ def format_bytes(bytes_val: int) -> str:
 
     sizes = ["B", "KB", "MB", "GB", "TB"]
     base = 1024
-    i = int(math.floor(math.log(bytes_val) / math.log(base)))
+    i = math.floor(math.log(bytes_val) / math.log(base))
     i = min(i, len(sizes) - 1)
 
-    return f"{bytes_val / (base ** i):.1f} {sizes[i]}"
+    return f"{bytes_val / (base**i):.1f} {sizes[i]}"
 
 
 def get_display_value(size: int, percentage: float, stats_format: str) -> str:
@@ -178,7 +178,7 @@ def render_compact_layout(
             progress_offset += percentage
 
         progress_bar = f"""
-  
+
       <mask id="rect-mask">
           <rect x="0" y="0" width="{offset_width}" height="8" fill="white" rx="5"/>
         </mask>
@@ -342,7 +342,7 @@ def render_pie_layout(
         row = index if index < half else index - half
 
         legend_items.append(f"""
-        <g class="stagger" style="animation-delay: {stagger_delay}ms" 
+        <g class="stagger" style="animation-delay: {stagger_delay}ms"
            transform="translate({col * LANGS_COMPACT_COLUMN_WIDTH}, {row * LANGS_COMPACT_ROW_HEIGHT})">
           <circle cx="5" cy="6" r="5" fill="{lang.color}" />
           <text x="15" y="10" class="lang-name">{encode_html(lang.name)} {display_value}</text>
@@ -408,9 +408,7 @@ def render_top_languages(
     elif config.layout == "donut":
         height = 215 + max(len(langs) - 5, 0) * 32
         width = width + 50
-    elif config.layout == "donut-vertical":
-        height = 300 + ((len(langs) + 1) // 2) * 25
-    elif config.layout == "pie":
+    elif config.layout == "donut-vertical" or config.layout == "pie":
         height = 300 + ((len(langs) + 1) // 2) * 25
     else:  # normal
         height = 45 + (len(langs) + 1) * 40
@@ -429,9 +427,7 @@ def render_top_languages(
     )
 
     # Extract text color for rendering
-    final_text_color = (
-        colors["text_color"] if isinstance(colors["text_color"], str) else colors["text_color"][1]
-    )
+    final_text_color = colors["text_color"] if isinstance(colors["text_color"], str) else colors["text_color"][1]
 
     # Render layout
     if len(langs) == 0:
@@ -448,17 +444,13 @@ def render_top_languages(
         </g>
         """
     elif config.layout == "donut":
-        final_layout = render_donut_layout(
-            langs, width, total_size, config.stats_format, final_text_color
-        )
+        final_layout = render_donut_layout(langs, width, total_size, config.stats_format, final_text_color)
     elif config.layout == "compact" or config.hide_progress:
         final_layout = render_compact_layout(
             langs, width, total_size, config.hide_progress, config.stats_format, final_text_color
         )
     else:
-        final_layout = render_normal_layout(
-            langs, width, total_size, config.stats_format, final_text_color
-        )
+        final_layout = render_normal_layout(langs, width, total_size, config.stats_format, final_text_color)
 
     # Add CSS
     css = f"""

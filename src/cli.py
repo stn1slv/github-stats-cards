@@ -6,19 +6,19 @@ import sys
 import click
 
 from .core.config import (
-    UserStatsFetchConfig,
-    LangsFetchConfig,
-    LangsCardConfig,
-    UserStatsCardConfig,
     ContribCardConfig,
     ContribFetchConfig,
+    LangsCardConfig,
+    LangsFetchConfig,
+    UserStatsCardConfig,
+    UserStatsFetchConfig,
 )
 from .core.exceptions import FetchError, LanguageFetchError
-from .github.fetcher import fetch_user_stats, fetch_contributor_stats
+from .github.fetcher import fetch_contributor_stats, fetch_user_stats
 from .github.langs_fetcher import fetch_top_languages
+from .rendering.contrib import render_contrib_card
 from .rendering.langs import render_top_languages
 from .rendering.user_stats import render_user_stats_card
-from .rendering.contrib import render_contrib_card
 
 # Weighting presets for language ranking
 WEIGHTING_PRESETS = {
@@ -69,7 +69,6 @@ def _write_svg_file(svg: str, output: str) -> None:
 @click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
-    pass
 
 
 @cli.command(name="user-stats")
@@ -247,26 +246,26 @@ def user_stats(
 ) -> None:
     """
     Generate GitHub User Stats Card SVG.
-    
+
     This tool fetches your GitHub statistics and generates a beautiful
     SVG card that you can embed in your README.md or profile.
-    
+
     Examples:
-    
+
       # Basic usage with environment variable
       export GITHUB_TOKEN=ghp_xxxxx
       github-stats-card user-stats -u octocat -o stats.svg
-      
+
       # With theme and custom options
       github-stats-card user-stats -u octocat -o stats.svg --theme vue-dark \\
         --show-icons --hide-border --include-all-commits
-      
+
       # Hide specific stats
       github-stats-card user-stats -u octocat -o stats.svg --hide stars,prs
-      
+
       # Show additional stats
       github-stats-card user-stats -u octocat -o stats.svg --show reviews,discussions_started
-      
+
       # Backward-compatible alias
       github-stats-card stats -u octocat -o stats.svg
     """
@@ -284,9 +283,7 @@ def user_stats(
         click.echo(f"Fetching GitHub stats for {username}...", err=True)
         user_stats_data = fetch_user_stats(fetch_config)
 
-        click.echo(
-            f"Found stats for {user_stats_data['name']} (@{user_stats_data['login']})", err=True
-        )
+        click.echo(f"Found stats for {user_stats_data['name']} (@{user_stats_data['login']})", err=True)
 
         # Create rendering configuration
         render_config = UserStatsCardConfig.from_cli_args(
@@ -475,27 +472,27 @@ def top_langs(
 ) -> None:
     """
     Generate Top Languages Card SVG.
-    
+
     This tool fetches programming languages from your GitHub repositories
     and generates a beautiful SVG card showing language distribution.
-    
+
     Examples:
-      
+
       # Basic usage
       github-stats-card top-langs -u octocat -o top-langs.svg
-      
+
       # Compact layout with dark theme
       github-stats-card top-langs -u octocat -o langs.svg \\
         --layout compact --theme vue-dark --hide-border
-      
+
       # Donut chart, hide specific languages
       github-stats-card top-langs -u octocat -o langs.svg \\
         --layout donut --hide "HTML,CSS,Makefile" --langs-count 8
-      
+
       # Balanced size and repo count weighting
       github-stats-card top-langs -u octocat -o langs.svg \\
         --size-weight 0.5 --count-weight 0.5
-      
+
       # Use weighting preset
       github-stats-card top-langs -u octocat -o langs.svg \\
         --weighting balanced
@@ -674,19 +671,19 @@ def contrib(
 ) -> None:
     """
     Generate Top Contributions Card SVG.
-    
+
     This tool fetches repositories you have contributed to (excluding your own)
     and generates an SVG card sorted by star count.
-    
+
     Examples:
-    
+
       # Basic usage
       github-stats-card contrib -u octocat -o contrib.svg
-      
+
       # Top 5 contributions with dark theme
       github-stats-card contrib -u octocat -o contrib.svg \\
         --theme vue-dark --limit 5
-      
+
       # Exclude specific repositories
       github-stats-card contrib -u octocat -o contrib.svg \\
         --exclude-repo "facebook/react,microsoft/vscode"

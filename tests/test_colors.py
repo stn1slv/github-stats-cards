@@ -3,15 +3,15 @@
 import pytest
 
 from src.rendering.colors import (
-    is_valid_hex_color,
-    is_valid_gradient,
-    parse_color,
     get_card_colors,
+    is_valid_gradient,
+    is_valid_hex_color,
+    parse_color,
 )
 
 
 @pytest.mark.parametrize(
-    "color,expected",
+    ("color", "expected"),
     [
         ("ffffff", True),
         ("fff", True),
@@ -27,7 +27,7 @@ def test_is_valid_hex_color(color: str, expected: bool):
 
 
 @pytest.mark.parametrize(
-    "parts,expected",
+    ("parts", "expected"),
     [
         (["90", "ff0000", "00ff00"], True),
         (["90", "ff0000"], False),
@@ -39,7 +39,7 @@ def test_is_valid_gradient(parts: list[str], expected: bool):
 
 
 @pytest.mark.parametrize(
-    "color,fallback,expected",
+    ("color", "fallback", "expected"),
     [
         ("2f80ed", "#000", "#2f80ed"),
         ("90,ff0000,00ff00", "#000", ["90", "ff0000", "00ff00"]),

@@ -1,6 +1,5 @@
 """Base SVG card renderer with common styling and structure."""
 
-from .colors import format_gradient
 from ..core.constants import (
     ANIMATION_FADE_DURATION_MS,
     ANIMATION_SCALE_DURATION_MS,
@@ -15,6 +14,7 @@ from ..core.constants import (
     FONT_WEIGHT_STAT_BOLD,
 )
 from ..core.utils import encode_html
+from .colors import format_gradient
 
 
 def render_card(
@@ -97,10 +97,7 @@ def render_card(
 
     # Get ring color for rank circle CSS
     ring_color_val = colors.get("ring_color") or title_color
-    if isinstance(ring_color_val, list):
-        ring_color = f"#{ring_color_val[1]}"
-    else:
-        ring_color = str(ring_color_val)
+    ring_color = f"#{ring_color_val[1]}" if isinstance(ring_color_val, list) else str(ring_color_val)
 
     # Ensure ring color has # prefix if it's a hex
     if len(ring_color) in [3, 6, 8] and not ring_color.startswith("#"):
@@ -184,11 +181,11 @@ def render_card(
   <title id="titleId">{safe_a11y_title}</title>
   <desc id="descId">{safe_a11y_desc}</desc>
   {css}
-  
+
   <defs>
     {gradient_def}
   </defs>
-  
+
   <rect
     x="0.5"
     y="0.5"
@@ -199,9 +196,9 @@ def render_card(
     fill="{fill_color}"
     stroke-opacity="{border_opacity}"
   />
-  
+
   {title_section}
-  
+
   <g transform="translate(0, {body_y_offset})">
     {body}
   </g>

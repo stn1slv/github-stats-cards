@@ -2,8 +2,6 @@
 
 from typing import Any
 
-from .base import render_card
-from .colors import get_card_colors
 from ..core.config import UserStatsCardConfig
 from ..core.constants import (
     ANIMATION_INITIAL_DELAY_MS,
@@ -15,11 +13,13 @@ from ..core.constants import (
     STAT_VALUE_X_POSITION,
     USER_STATS_CARD_BASE_HEIGHT,
 )
-from ..github.fetcher import UserStats
 from ..core.i18n import get_translation
-from .icons import get_icon_svg
-from ..github.rank import calculate_user_rank
 from ..core.utils import encode_html, k_formatter
+from ..github.fetcher import UserStats
+from ..github.rank import calculate_user_rank
+from .base import render_card
+from .colors import get_card_colors
+from .icons import get_icon_svg
 
 
 def _get_stat_definitions(stats: UserStats, locale: str) -> dict[str, dict[str, Any]]:
@@ -113,9 +113,7 @@ def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str
     )
 
     # Determine title
-    title = config.custom_title or get_translation(
-        "statcard_title", config.locale, name=stats["name"]
-    )
+    title = config.custom_title or get_translation("statcard_title", config.locale, name=stats["name"])
 
     # Build stat items
     all_stats = _get_stat_definitions(stats, config.locale)
@@ -188,8 +186,10 @@ def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str
         <circle class="rank-circle-rim" cx="-10" cy="8" r="40" />
         <circle class="rank-circle" cx="-10" cy="8" r="40" />
         <g class="rank-text">
-          <text x="-5" y="3" alignment-baseline="central" dominant-baseline="central" text-anchor="middle" data-testid="level-rank-icon">
-          {rank_result['level']}
+          <text x="-5" y="3" alignment-baseline="central"
+                dominant-baseline="central" text-anchor="middle"
+                data-testid="level-rank-icon">
+          {rank_result["level"]}
         </text>
         </g>
       </g>"""

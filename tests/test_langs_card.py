@@ -2,15 +2,15 @@
 
 import pytest
 
+from src.core.config import LangsCardConfig
+from src.github.langs_fetcher import Language
 from src.rendering.langs import (
+    format_bytes,
+    get_default_langs_count,
+    get_display_value,
     render_top_languages,
     trim_top_languages,
-    get_default_langs_count,
-    format_bytes,
-    get_display_value,
 )
-from src.github.langs_fetcher import Language
-from src.core.config import LangsCardConfig
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def sample_langs():
 
 
 @pytest.mark.parametrize(
-    "size,expected",
+    ("size", "expected"),
     [
         (0, "0 B"),
         (1024, "1.0 KB"),
@@ -35,12 +35,12 @@ def test_format_bytes(size: int, expected: str):
 
 
 def test_format_bytes_negative():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Bytes must be non-negative"):
         format_bytes(-1)
 
 
 @pytest.mark.parametrize(
-    "fmt,expected",
+    ("fmt", "expected"),
     [
         ("bytes", "1.0 KB"),
         ("percentages", "50.5%"),
@@ -51,7 +51,7 @@ def test_get_display_value(fmt: str, expected: str):
 
 
 @pytest.mark.parametrize(
-    "layout,expected",
+    ("layout", "expected"),
     [
         ("normal", 5),
         ("compact", 6),
@@ -86,7 +86,7 @@ def test_render_top_languages_basic(sample_langs):
 
 
 @pytest.mark.parametrize(
-    "layout,marker",
+    ("layout", "marker"),
     [
         ("compact", 'mask="url(#rect-mask)"'),
         ("donut", 'stroke-width="25"'),

@@ -18,7 +18,6 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.12.0",
-    "black>=23.0.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
@@ -33,19 +32,51 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-[tool.black]
-line-length = 100
-target-version = ["py313"]
-
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "S",    # flake8-bandit
+    "RUF",  # Ruff-specific rules
+    "ANN",  # flake8-annotations
+    "C4",   # flake8-comprehensions — suboptimal comprehensions
+    "PT",   # flake8-pytest-style — enforces pytest best practices
+    "T20",  # flake8-print — catches print() in production code
+    "DTZ",  # flake8-datetimez — catches timezone-naive datetime usage
+    "PIE",  # flake8-pie — misc lints
+    "TRY",  # tryceratops — exception anti-patterns
+    "PERF", # perflint — performance anti-patterns
+    "FURB", # refurb — modernizes Python idioms
+    "LOG",  # flake8-logging — logging best practices
+]
+ignore = [
+    "TRY003", # Avoid specifying long messages outside the exception class — too strict for ValueError/TypeError with descriptive messages
+    "TRY300", # Consider moving statement to else block — try/else for returns is less readable than direct return after try
+    "TRY301", # Abstract raise to inner function — overly pedantic
+    "TRY400", # Use logging.exception instead of logging.error — conflicts with structlog/loguru; legitimate cases exist for error() without full traceback
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ANN001", "ANN201", "ANN202", "S105", "S106", "N803", "N806", "T20", "DTZ005"] # Allow assert, print, datetime.now() without tz; skip annotations and security checks in tests
+"src/rendering/icons.py" = ["E501"] # Long SVG paths
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.mypy]
 python_version = "3.13"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
+strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

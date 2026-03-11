@@ -1,10 +1,12 @@
 """Tests for contributor stats fetcher."""
 
 from unittest.mock import patch
+
 import pytest
+
 from src.core.config import ContribFetchConfig
-from src.github.fetcher import fetch_contributor_stats
 from src.core.exceptions import FetchError
+from src.github.fetcher import fetch_contributor_stats
 
 
 @pytest.fixture
@@ -13,7 +15,6 @@ def mock_client():
         patch("src.github.fetcher.GitHubClient") as MockClient,
         patch("src.github.fetcher.fetch_user_stats") as mock_fetch_stats,
     ):
-
         client_instance = MockClient.return_value
         client_instance.fetch_image.return_value = b"fake_image_data"
 
@@ -139,16 +140,15 @@ def test_fetch_contributor_stats_sorting(mock_client):
 
 def test_fetch_contributor_stats_limit(mock_client):
     """Test that results are limited."""
-    repos = []
-    for i in range(10):
-        repos.append(
-            {
-                "nameWithOwner": f"owner/repo{i}",
-                "isPrivate": False,
-                "stargazers": {"totalCount": 100 - i},
-                "owner": {"avatarUrl": "http://avatar", "login": "owner"},
-            }
-        )
+    repos = [
+        {
+            "nameWithOwner": f"owner/repo{i}",
+            "isPrivate": False,
+            "stargazers": {"totalCount": 100 - i},
+            "owner": {"avatarUrl": "http://avatar", "login": "owner"},
+        }
+        for i in range(10)
+    ]
     setup_mock_response(mock_client, repos)
 
     config = ContribFetchConfig(username="user", token="token", limit=3)
@@ -176,9 +176,7 @@ def test_fetch_contributor_stats_exclude(mock_client):
     ]
     setup_mock_response(mock_client, repos)
 
-    config = ContribFetchConfig(
-        username="user", token="token", limit=5, exclude_repo=["owner/skip"]
-    )
+    config = ContribFetchConfig(username="user", token="token", limit=5, exclude_repo=["owner/skip"])
     stats = fetch_contributor_stats(config)
 
     assert len(stats["repos"]) == 1
@@ -228,9 +226,7 @@ def test_fetch_error(mock_client):
 def test_fetch_contributor_stats_partial_error(mock_client):
     """Test that fetcher continues if one year fails with GraphQL errors."""
     # 1. Years response (2 years)
-    years_response = {
-        "data": {"user": {"contributionsCollection": {"contributionYears": [2024, 2023]}}}
-    }
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024, 2023]}}}}
 
     # 2. 2024 response (errors)
     error_response = {"errors": [{"message": "Some error"}]}
@@ -285,9 +281,7 @@ def test_fetch_contributor_stats_deduplication(mock_client):
         "data": {
             "user": {
                 "contributionsCollection": {
-                    "commitContributionsByRepository": [
-                        {"repository": repo_node, "contributions": {"totalCount": 1}}
-                    ],
+                    "commitContributionsByRepository": [{"repository": repo_node, "contributions": {"totalCount": 1}}],
                     "pullRequestContributionsByRepository": [
                         {"repository": repo_node, "contributions": {"totalCount": 1}}
                     ],

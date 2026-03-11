@@ -11,7 +11,7 @@ class BaseConfig:
     """Base configuration class with CLI argument parsing."""
 
     @classmethod
-    def from_cli_args(cls, **kwargs: Any) -> Any:
+    def from_cli_args(cls, **kwargs: Any) -> Any:  # noqa: ANN401
         """
         Create configuration from CLI arguments.
 

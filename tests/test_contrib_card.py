@@ -1,6 +1,7 @@
 """Tests for contributor card configuration."""
 
 import pytest
+
 from src.core.config import ContribCardConfig, ContribFetchConfig
 
 
@@ -41,9 +42,7 @@ class TestContribFetchConfig:
 
     def test_initialization(self):
         """Test initializing ContribFetchConfig."""
-        config = ContribFetchConfig(
-            username="testuser", token="testtoken", limit=20, exclude_repo=["repo1"]
-        )
+        config = ContribFetchConfig(username="testuser", token="testtoken", limit=20, exclude_repo=["repo1"])
         assert config.username == "testuser"
         assert config.token == "testtoken"
         assert config.limit == 20

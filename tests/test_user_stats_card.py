@@ -2,9 +2,9 @@
 
 import pytest
 
-from src.rendering.user_stats import render_user_stats_card
-from src.github.fetcher import UserStats
 from src.core.config import UserStatsCardConfig
+from src.github.fetcher import UserStats
+from src.rendering.user_stats import render_user_stats_card
 
 
 @pytest.fixture

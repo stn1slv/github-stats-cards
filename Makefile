@@ -1,25 +1,27 @@
-.PHONY: help setup-env upgrade-deps test format lint type-check check clean all
+.PHONY: help setup upgrade-deps test format lint build run check clean all
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  setup-env      - Install project dependencies"
+	@echo "  setup          - Install project dependencies"
 	@echo "  upgrade-deps   - Upgrade all dependencies to latest versions"
 	@echo "  test           - Run tests with coverage"
-	@echo "  format         - Format code with black"
+	@echo "  format         - Format code with ruff"
 	@echo "  lint           - Lint code with ruff"
-	@echo "  type-check     - Type check with mypy"
+	@echo "  build          - Build the application package"
+	@echo "  run            - Run the CLI tool"
 	@echo "  check          - Run all checks (format, lint, type-check, test)"
 	@echo "  clean          - Remove cache and build artifacts"
 	@echo "  all            - Run setup and all checks"
 
 # Install dependencies
-setup-env:
-	uv pip install -e ".[dev]"
+setup:
+	uv sync
 
 # Upgrade dependencies
 upgrade-deps:
-	uv pip install --upgrade -e ".[dev]"
+	uv lock --upgrade
+	uv sync
 
 # Run tests with coverage
 test:
@@ -27,7 +29,7 @@ test:
 
 # Format code
 format:
-	uv run black src tests
+	uv run ruff format src tests
 
 # Lint code
 lint:
@@ -40,6 +42,14 @@ lint-fix:
 # Type check
 type-check:
 	uv run mypy src
+
+# Build the package
+build:
+	uv build
+
+# Run the CLI tool
+run:
+	uv run github-stats-card --help
 
 # Run all checks
 check: format lint type-check test
@@ -54,4 +64,4 @@ clean:
 	find . -type f -name ".coverage" -delete 2>/dev/null || true
 
 # Run setup and all checks
-all: setup-env check
+all: setup check

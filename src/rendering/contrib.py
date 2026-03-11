@@ -31,19 +31,14 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
     body_y_offset = 25 if config.hide_title else 55
     item_height = 35
     num_items = len(stats["repos"])
-    if num_items == 0:
-        height = body_y_offset + 45
-    else:
-        height = body_y_offset + (num_items * item_height) + 15
+    height = body_y_offset + 45 if num_items == 0 else body_y_offset + (num_items * item_height) + 15
 
     # Generate body content
     body = []
 
     if num_items == 0:
         text_color = colors["text_color"]
-        body.append(
-            f'<text x="25" y="15" class="stat bold" fill="{text_color}">No contributions found</text>'
-        )
+        body.append(f'<text x="25" y="15" class="stat bold" fill="{text_color}">No contributions found</text>')
     else:
         # Avatar clip path definition (reused)
         # Using objectBoundingBox ensures the circle is always centered on the element
@@ -65,13 +60,13 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             if repo["avatar_b64"]:
                 # Use embedded base64 image
                 body.append(f"""
-                <image x="0" y="7.5" width="20" height="20" clip-path="url(#avatar-clip)" 
-                       href="data:image/png;base64,{repo['avatar_b64']}" />
+                <image x="0" y="7.5" width="20" height="20" clip-path="url(#avatar-clip)"
+                       href="data:image/png;base64,{repo["avatar_b64"]}" />
                 """)
             else:
                 # Fallback circle
                 body.append(f"""
-                <circle cx="10" cy="17.5" r="10" fill="{colors['icon_color']}" opacity="0.5" />
+                <circle cx="10" cy="17.5" r="10" fill="{colors["icon_color"]}" opacity="0.5" />
                 """)
 
             # 2. Repo Name (centered vertically: baseline at ~22)
@@ -94,7 +89,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
             body.append(f"""
             <g transform="translate({right_edge}, 7.5)">
                 <circle cx="10" cy="10" r="12" stroke="{ring_color}" stroke-width="2" fill="none" opacity="0.2" />
-                <text x="10" y="10" alignment-baseline="central" dominant-baseline="central" 
+                <text x="10" y="10" alignment-baseline="central" dominant-baseline="central"
                       text-anchor="middle" class="stat bold" style="font-size: {rank_size}px;">{rank}</text>
             </g>
             """)

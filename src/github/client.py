@@ -11,7 +11,7 @@ from ..core.exceptions import APIError
 class GitHubClient:
     """Helper client for GitHub API interactions."""
 
-    def __init__(self, token: str):
+    def __init__(self, token: str) -> None:
         self.token = token
         self.headers = {
             "Authorization": f"Bearer {token}",
