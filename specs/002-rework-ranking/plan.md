@@ -1,6 +1,7 @@
 # Implementation Plan: Rework Ranking Calculation
 
 **Branch**: `002-rework-ranking` | **Date**: 2026-02-20 | **Spec**: [specs/002-rework-ranking/spec.md](specs/002-rework-ranking/spec.md)
+**Status**: Completed
 **Input**: Feature specification from `/specs/002-rework-ranking/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.gemini/commands/speckit.plan.toml` for the execution workflow.

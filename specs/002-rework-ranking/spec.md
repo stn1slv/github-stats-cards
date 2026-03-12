@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-rework-ranking`
 **Created**: 2026-02-20
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "I want to rework ranking (S, A, B, ...) calculation for stats (user stats) and contrib (top contribution). I want to use existing ranking for stats only. For contrib, I want to mostly focus on github stars (as a first factor) and commits (as a second factor). For example, https://github.com/debezium/debezium should have 'S' rank."
 
 ## Clarifications

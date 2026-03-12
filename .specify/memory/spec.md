@@ -77,6 +77,8 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
     - `+`: Large/Mature (>5k commits).
     - `-`: Small/New Project (1-99 commits).
     - (None): Medium Project (100-5k commits) OR Unknown Magnitude (0 commits).
+- **FR-012: Repository Exclusion Wildcards** [Source: 001-contributor-card]
+  - Repository exclusion MUST support wildcard (*) matching and owner-omitted matching (e.g., "awesome-*" matches any repo starting with "awesome-" regardless of owner). Matching MUST be case-insensitive.
 
 ## Non-Functional Requirements
 - **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck).
@@ -103,7 +105,8 @@ Configuration for top languages card rendering:
 Configuration for contributor card rendering:
 - `limit` (max repositories to show)
 - `exclude_repo` (list of patterns to exclude)
-- `theme`, `colors`, `hide_border`, `card_width`
+- `theme`, `colors` (title, text, bg, border)
+- `hide_border`, `card_width`, `border_radius`, `disable_animations`
 
 ### UserStats (`src/github/fetcher.py`)
 TypedDict containing raw statistics from GitHub API.
@@ -112,7 +115,7 @@ TypedDict containing raw statistics from GitHub API.
 Dataclass representing an aggregated programming language.
 
 ### ContributorRepo (`src/github/fetcher.py`)
-TypedDict representing a contributed repository with name, stars, rank level, and base64 avatar.
+TypedDict representing a contributed repository with name, stars, rank level, and base64 avatar (`avatar_b64`).
 
 ## Architecture
 

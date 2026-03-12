@@ -56,18 +56,15 @@ src/
 - All new features must align with the 3-tier sub-package architecture.
 
 ## Recent Changes
-- **Rework Ranking (2026-02-20):** Shifted `contrib` card ranking to be repository-centric.
+- **Rework Ranking (2026-02-20):** Shifted `contrib` card ranking to be repository-centric. [Source: 002-rework-ranking]
   - Implemented `calculate_repo_rank` based on Stars + Repo Total Commits.
   - Renamed `calculate_rank` to `calculate_user_rank` for clarity.
-  - Updated fetcher to retrieve repo commit history count.
-- **Contributor Card (2026-02-08):** Added `contrib` subcommand to display top external contributions.
+- **Contributor Card (2026-02-08):** Added `contrib` subcommand to display top external contributions. [Source: 001-contributor-card]
   - Implemented `fetch_contributor_stats` with GraphQL filtering and sorting.
-  - Added Base64 avatar embedding for repository owners.
+  - Added Base64 avatar embedding for repository owners using `<clipPath>` for circular masking.
   - Created `ContribCardConfig` and `rendering/contrib.py`.
 - **Modular Refactor:** Split the flat structure into `core`, `github`, and `rendering` packages.
 - **API Consolidation:** Introduced `GitHubClient` to manage all external requests.
-- **Config Automation:** Added `BaseConfig` to handle boilerplate CLI argument parsing.
-- **Type Hinting:** Migrated entire codebase to Python 3.10+ modern type hints.
 
 ## Future Work
 - **Planned: Repository Card:** Implement a card type to display statistics for a specific repository (distinct from user contributions).

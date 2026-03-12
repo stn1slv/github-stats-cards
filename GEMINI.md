@@ -86,6 +86,16 @@ The project uses `uv` for all lifecycle tasks.
 - **Rationale:** `AliasGroup` avoids duplicating the entire command definition. A simple `COMMAND_ALIASES` dict is the single source of truth for all aliases.
 - **Gotcha:** Adding a new alias requires only a dict entry in `COMMAND_ALIASES` — do not register a second Click command.
 
+### SVG Image Embedding (2026-02-08)
+- **Decision:** External images (avatars) are Base64 encoded and embedded as data URIs. Circular masking is achieved using SVG `<clipPath>`.
+- **Rationale:** Ensures self-contained SVGs that work in restricted environments (like GitHub READMEs) without external dependencies or tracking.
+- **Gotcha:** Use a shared `<clipPath>` definition in `<defs>` and refer to it by ID (`url(#avatar-clip)`) to minimize SVG size.
+
+### Project Magnitude Ranking (2026-02-20)
+- **Decision:** Use **Repository Total Commits** as a proxy for "Project Magnitude" to modify repository ranks (+/-) in the contributor card.
+- **Rationale:** Distinguishes between contributions to massive, established projects vs. small/new projects, even if star counts are similar.
+- **Gotcha:** Fetch total commits via the `object(expression: "HEAD") { history { totalCount } }` fragment in GraphQL. Ensure this is fetched for all contribution types (Commits, PRs, Issues, Reviews) to avoid missing magnitude data when a user hasn't made direct commits.
+
 ## Recent Changes
 ### [Code Quality Refactor] (2026-02-22)
 - Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
@@ -101,6 +111,6 @@ The project uses `uv` for all lifecycle tasks.
 - Renamed internal ranking function to `calculate_user_rank` for clarity.
 
 ### [Contributor Card] (2026-02-08)
-- Added `contrib` subcommand to display top external contributions.
-- Features: Star-based sorting, repository exclusion, embedded avatars.
+- Added `contrib` subcommand to display top external contributions. [Source: 001-contributor-card]
+- Features: Star-based sorting, repository exclusion (wildcards), embedded Base64 avatars.
 - New commands: `uv run github-stats-card contrib`
