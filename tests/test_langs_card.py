@@ -16,9 +16,9 @@ from src.rendering.langs import (
 @pytest.fixture
 def sample_langs():
     return {
-        "Python": Language(name="Python", color="#3572A5", size=1000, count=2),
-        "JavaScript": Language(name="JavaScript", color="#f1e05a", size=500, count=1),
-        "TypeScript": Language(name="TypeScript", color="#3178c6", size=1500, count=1),
+        "Python": Language(name="Python", color="#3572A5", size=1000, count=2, score=1000),
+        "JavaScript": Language(name="JavaScript", color="#f1e05a", size=500, count=1, score=500),
+        "TypeScript": Language(name="TypeScript", color="#3178c6", size=1500, count=1, score=1500),
     }
 
 
@@ -63,11 +63,11 @@ def test_get_default_langs_count(layout: str, expected: int):
 
 
 def test_trim_top_languages(sample_langs):
-    langs, total = trim_top_languages(sample_langs, 2)
+    langs, total_score = trim_top_languages(sample_langs, 2)
     assert len(langs) == 2
     assert langs[0].name == "TypeScript"
     assert langs[1].name == "Python"
-    assert total == 2500
+    assert total_score == 2500
 
 
 def test_trim_top_languages_empty():

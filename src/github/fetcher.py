@@ -3,6 +3,7 @@
 import asyncio
 import base64
 from typing import Any, TypedDict
+from urllib.parse import quote
 
 from ..core.config import ContribFetchConfig, UserStatsFetchConfig
 from ..core.constants import API_BASE_URL
@@ -246,7 +247,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
             # Use REST API to get all-time commit count
             try:
                 search_data = client.rest_get(
-                    f"{API_BASE_URL}/search/commits?q=author:{username}",
+                    f"{API_BASE_URL}/search/commits?q=author:{quote(username)}",
                     headers={"Accept": "application/vnd.github.cloak-preview+json"},
                 )
                 total_commits = search_data.get("total_count", total_commits)
@@ -257,7 +258,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
         # Use REST API to get accurate issue count (includes issues in repos user doesn't own)
         total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
         try:
-            issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue")
+            issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{quote(username)}+type:issue")
             total_issues = issues_data.get("total_count", total_issues)
         except APIError:
             # If REST API fails, use GraphQL data

@@ -15,6 +15,7 @@ def test_language_dataclass():
     assert lang.color == "#3572A5"
     assert lang.size == 1000
     assert lang.count == 2
+    assert lang.score == 0  # default before weighting
 
 
 # ---------------------------------------------------------------------------
@@ -22,9 +23,21 @@ def test_language_dataclass():
 # ---------------------------------------------------------------------------
 
 
-def _make_repos_response(nodes: list[dict]) -> dict:
+def _make_repos_response(nodes: list[dict], has_next_page: bool = False, end_cursor: str | None = None) -> dict:
     """Build a minimal GraphQL response containing repository nodes."""
-    return {"data": {"user": {"repositories": {"nodes": nodes}}}}
+    return {
+        "data": {
+            "user": {
+                "repositories": {
+                    "nodes": nodes,
+                    "pageInfo": {
+                        "hasNextPage": has_next_page,
+                        "endCursor": end_cursor,
+                    },
+                }
+            }
+        }
+    }
 
 
 _REPO_PYTHON_JS = [
@@ -57,6 +70,7 @@ def test_fetch_top_languages_success(MockClient):
     assert len(result) == 2
     assert "Python" in result
     assert result["Python"].size == 100
+    assert result["Python"].score == 100  # default weights: score == size
     assert result["JavaScript"].size == 50
     assert result["Python"].color == "#3572A5"
 
@@ -99,7 +113,8 @@ def test_fetch_top_languages_with_weights(MockClient):
     config = LangsFetchConfig(username="testuser", token="testtoken", size_weight=0.5, count_weight=1.0)
     result = fetch_top_languages(config)
 
-    assert result["Python"].size == 28
+    assert result["Python"].score == 28
+    assert result["Python"].size == 200  # original bytes preserved
 
 
 @patch("src.github.langs_fetcher.GitHubClient")
@@ -155,3 +170,33 @@ def test_fetch_top_languages_user_not_found(MockClient):
     config = LangsFetchConfig(username="testuser", token="testtoken")
     with pytest.raises(LanguageFetchError, match="User 'testuser' not found"):
         fetch_top_languages(config)
+
+
+# ---------------------------------------------------------------------------
+# Pagination
+# ---------------------------------------------------------------------------
+
+
+@patch("src.github.langs_fetcher.GitHubClient")
+def test_fetch_top_languages_pagination(MockClient):
+    """Test that repositories across multiple pages are aggregated."""
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
+    MockClient.return_value.__exit__.return_value = False
+
+    page1 = _make_repos_response(
+        [{"name": "repo1", "languages": {"edges": [{"size": 100, "node": {"name": "Python", "color": "#3572A5"}}]}}],
+        has_next_page=True,
+        end_cursor="cursor1",
+    )
+    page2 = _make_repos_response(
+        [{"name": "repo2", "languages": {"edges": [{"size": 200, "node": {"name": "Python", "color": "#3572A5"}}]}}],
+        has_next_page=False,
+    )
+    MockClient.return_value.graphql_query.side_effect = [page1, page2]
+
+    config = LangsFetchConfig(username="testuser", token="testtoken")
+    result = fetch_top_languages(config)
+
+    assert result["Python"].size == 300
+    assert result["Python"].count == 2
+    assert MockClient.return_value.graphql_query.call_count == 2

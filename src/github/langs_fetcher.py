@@ -15,8 +15,9 @@ class Language:
 
     name: str
     color: str
-    size: int  # bytes (or weighted size)
+    size: int  # original bytes
     count: int  # number of repos using this language
+    score: int = 0  # weighted score for ranking (set after aggregation)
 
 
 def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
@@ -39,9 +40,9 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
         count_weight = config.count_weight
 
         query = """
-        query userInfo($login: String!) {
+        query userInfo($login: String!, $after: String) {
           user(login: $login) {
-            repositories(ownerAffiliations: OWNER, isFork: false, first: 100) {
+            repositories(ownerAffiliations: OWNER, isFork: false, first: 100, after: $after) {
               nodes {
                 name
                 languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
@@ -54,11 +55,16 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
                   }
                 }
               }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
             }
           }
         }
         """
 
+        # Fetch first page
         try:
             data = client.graphql_query(query, {"login": username})
         except APIError as e:
@@ -76,7 +82,22 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
         if not user_data:
             raise LanguageFetchError(f"User '{username}' not found")
 
-        repos = user_data.get("repositories", {}).get("nodes", [])
+        repos_data = user_data.get("repositories", {})
+        repos = list(repos_data.get("nodes", []))
+
+        # Paginate through remaining repositories
+        page_info = repos_data.get("pageInfo", {})
+        while page_info.get("hasNextPage"):
+            try:
+                page_data = client.graphql_query(query, {"login": username, "after": page_info["endCursor"]})
+                page_user = page_data.get("data", {}).get("user")
+                if not page_user:
+                    break
+                page_repos = page_user.get("repositories", {})
+                repos.extend(page_repos.get("nodes", []))
+                page_info = page_repos.get("pageInfo", {})
+            except APIError:
+                break
 
         # Filter out excluded repositories
         repos = [r for r in repos if not is_repo_excluded(r.get("name", ""), exclude_repo)]
@@ -106,11 +127,11 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
                         count=1,
                     )
 
-        # Apply size and count weights for ranking
+        # Compute weighted score for ranking (size is preserved as original bytes)
         for lang in languages.values():
-            lang.size = int((lang.size**size_weight) * (lang.count**count_weight))
+            lang.score = int((lang.size**size_weight) * (lang.count**count_weight))
 
-        # Sort by size descending
-        sorted_langs = dict(sorted(languages.items(), key=lambda x: x[1].size, reverse=True))
+        # Sort by score descending
+        sorted_langs = dict(sorted(languages.items(), key=lambda x: x[1].score, reverse=True))
 
         return sorted_langs

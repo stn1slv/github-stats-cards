@@ -43,13 +43,13 @@ def trim_top_languages(
     langs_to_hide = {lang.lower().strip() for lang in hide}
     langs_count = int(clamp_value(int(langs_count), 1, MAXIMUM_LANGS_COUNT))
 
-    # Filter and sort
+    # Filter and sort by weighted score
     langs = [lang for lang in top_langs.values() if lang.name.lower().strip() not in langs_to_hide]
-    langs = sorted(langs, key=lambda x: x.size, reverse=True)[:langs_count]
+    langs = sorted(langs, key=lambda x: x.score, reverse=True)[:langs_count]
 
-    total_size = sum(lang.size for lang in langs)
+    total_score = sum(lang.score for lang in langs)
 
-    return langs, total_size
+    return langs, total_score
 
 
 def get_default_langs_count(layout: str) -> int:
@@ -109,7 +109,7 @@ def get_display_value(size: int, percentage: float, stats_format: str) -> str:
 def render_normal_layout(
     langs: list[Language],
     width: int,
-    total_size: int,
+    total_score: int,
     stats_format: str,
     text_color: str,
 ) -> str:
@@ -119,7 +119,7 @@ def render_normal_layout(
     progress_width = width - padding_right
 
     for index, lang in enumerate(langs):
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         display_value = get_display_value(lang.size, percentage, stats_format)
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
 
@@ -144,7 +144,7 @@ def render_normal_layout(
 def render_compact_layout(
     langs: list[Language],
     width: int,
-    total_size: int,
+    total_score: int,
     hide_progress: bool,
     stats_format: str,
     text_color: str,
@@ -161,7 +161,7 @@ def render_compact_layout(
         progress_offset = 0.0
         bars = []
         for lang in langs:
-            percentage = (lang.size / total_size) * offset_width if total_size > 0 else 0
+            percentage = (lang.score / total_score) * offset_width if total_score > 0 else 0
             # Add minimum width for visibility of small bars
             bar_width = percentage + 10 if percentage > 0 and percentage < 10 else percentage
             bars.append(f"""
@@ -195,7 +195,7 @@ def render_compact_layout(
     name_max_width = 180 if width >= 467 else 130
 
     def render_lang_item(lang: Language, index: int) -> str:
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         display_value = get_display_value(lang.size, percentage, stats_format)
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
 
@@ -239,7 +239,7 @@ def render_compact_layout(
 def render_donut_layout(
     langs: list[Language],
     width: int,
-    total_size: int,
+    total_score: int,
     stats_format: str,
     text_color: str,
 ) -> str:
@@ -253,7 +253,7 @@ def render_donut_layout(
     offset = 0.0
 
     for index, lang in enumerate(langs):
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         segment_length = (percentage / 100) * circumference
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
 
@@ -270,7 +270,7 @@ def render_donut_layout(
     # Legend on the right
     legend_items = []
     for index, lang in enumerate(langs):
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         display_value = get_display_value(lang.size, percentage, stats_format)
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
 
@@ -293,7 +293,7 @@ def render_donut_layout(
 
 def render_pie_layout(
     langs: list[Language],
-    total_size: int,
+    total_score: int,
     stats_format: str,
     text_color: str,
 ) -> str:
@@ -310,7 +310,7 @@ def render_pie_layout(
     current_angle = -90.0  # Start from top
 
     for index, lang in enumerate(langs):
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         angle = (percentage / 100) * 360
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
 
@@ -335,7 +335,7 @@ def render_pie_layout(
     legend_items = []
 
     for index, lang in enumerate(langs):
-        percentage = (lang.size / total_size) * 100 if total_size > 0 else 0
+        percentage = (lang.score / total_score) * 100 if total_score > 0 else 0
         display_value = get_display_value(lang.size, percentage, stats_format)
         stagger_delay = (index + 3) * ANIMATION_STAGGER_DELAY_MS
         col = 0 if index < half else 1
@@ -391,7 +391,7 @@ def render_top_languages(
         langs_count = get_default_langs_count(config.layout)
 
     # Trim and filter languages
-    langs, total_size = trim_top_languages(top_langs, langs_count, config.hide)
+    langs, total_score = trim_top_languages(top_langs, langs_count, config.hide)
 
     # Card dimensions - use compact width for compact layout, otherwise default
     if config.layout == "compact":
@@ -436,21 +436,21 @@ def render_top_languages(
         <text x="25" y="50" class="lang-name">No languages data available</text>
         """
     elif config.layout == "pie":
-        final_layout = render_pie_layout(langs, total_size, config.stats_format, final_text_color)
+        final_layout = render_pie_layout(langs, total_score, config.stats_format, final_text_color)
     elif config.layout == "donut-vertical":
         final_layout = f"""
         <g transform="translate(0, 0)">
-          {render_pie_layout(langs, total_size, config.stats_format, final_text_color)}
+          {render_pie_layout(langs, total_score, config.stats_format, final_text_color)}
         </g>
         """
     elif config.layout == "donut":
-        final_layout = render_donut_layout(langs, width, total_size, config.stats_format, final_text_color)
+        final_layout = render_donut_layout(langs, width, total_score, config.stats_format, final_text_color)
     elif config.layout == "compact" or config.hide_progress:
         final_layout = render_compact_layout(
-            langs, width, total_size, config.hide_progress, config.stats_format, final_text_color
+            langs, width, total_score, config.hide_progress, config.stats_format, final_text_color
         )
     else:
-        final_layout = render_normal_layout(langs, width, total_size, config.stats_format, final_text_color)
+        final_layout = render_normal_layout(langs, width, total_score, config.stats_format, final_text_color)
 
     # Add CSS
     css = f"""
