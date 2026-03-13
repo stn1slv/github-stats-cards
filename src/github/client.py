@@ -1,6 +1,7 @@
 """GitHub API client for making authenticated requests."""
 
-from typing import Any, cast
+from types import TracebackType
+from typing import Any, Self, cast
 
 import httpx
 
@@ -18,6 +19,56 @@ class GitHubClient:
             "Content-Type": "application/json",
         }
         self.timeout = float(API_TIMEOUT)
+        self._client: httpx.Client | None = None
+        self._async_client: httpx.AsyncClient | None = None
+
+    @property
+    def client(self) -> httpx.Client:
+        """Get or create synchronous HTTP client."""
+        if self._client is None:
+            self._client = httpx.Client(timeout=self.timeout)
+        return self._client
+
+    @property
+    def async_client(self) -> httpx.AsyncClient:
+        """Get or create asynchronous HTTP client."""
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient(timeout=self.timeout)
+        return self._async_client
+
+    def close(self) -> None:
+        """Close synchronous HTTP client."""
+        if self._client:
+            self._client.close()
+            self._client = None
+
+    async def aclose(self) -> None:
+        """Close asynchronous HTTP client."""
+        if self._async_client:
+            await self._async_client.aclose()
+            self._async_client = None
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        await self.aclose()
 
     def graphql_query(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         """
@@ -34,14 +85,13 @@ class GitHubClient:
             APIError: If API request fails
         """
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.post(
-                    GRAPHQL_ENDPOINT,
-                    json={"query": query, "variables": variables or {}},
-                    headers=self.headers,
-                )
-                response.raise_for_status()
-                return cast(dict[str, Any], response.json())
+            response = self.client.post(
+                GRAPHQL_ENDPOINT,
+                json={"query": query, "variables": variables or {}},
+                headers=self.headers,
+            )
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
         except httpx.HTTPError as e:
             raise APIError(f"GitHub API request failed: {e}") from e
 
@@ -60,14 +110,13 @@ class GitHubClient:
             APIError: If API request fails
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    GRAPHQL_ENDPOINT,
-                    json={"query": query, "variables": variables or {}},
-                    headers=self.headers,
-                )
-                response.raise_for_status()
-                return cast(dict[str, Any], response.json())
+            response = await self.async_client.post(
+                GRAPHQL_ENDPOINT,
+                json={"query": query, "variables": variables or {}},
+                headers=self.headers,
+            )
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
         except httpx.HTTPError as e:
             raise APIError(f"GitHub API request failed: {e}") from e
 
@@ -90,13 +139,12 @@ class GitHubClient:
             request_headers.update(headers)
 
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.get(
-                    url,
-                    headers=request_headers,
-                )
-                response.raise_for_status()
-                return cast(dict[str, Any], response.json())
+            response = self.client.get(
+                url,
+                headers=request_headers,
+            )
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
         except httpx.HTTPError as e:
             raise APIError(f"GitHub API request failed: {e}") from e
 
@@ -111,10 +159,9 @@ class GitHubClient:
             Image binary content or None if failed
         """
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.get(url)
-                response.raise_for_status()
-                return cast(bytes, response.content)
+            response = self.client.get(url)
+            response.raise_for_status()
+            return cast(bytes, response.content)
         except httpx.HTTPError:
             return None
 
@@ -129,9 +176,8 @@ class GitHubClient:
             Image binary content or None if failed
         """
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                return cast(bytes, response.content)
+            response = await self.async_client.get(url)
+            response.raise_for_status()
+            return cast(bytes, response.content)
         except httpx.HTTPError:
             return None

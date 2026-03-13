@@ -70,7 +70,7 @@ The project uses `uv` for all lifecycle tasks.
 - **Gotcha:** Never skip this step before declaring a task complete. If `lint` fails due to fixable issues (like imports), use `make lint-fix`.
 
 ## Active Technologies
-- Python 3.13+ (Managed by `uv`) + Click (CLI), Requests (API), Built-in XML/SVG libraries
+- Python 3.13+ (Managed by `uv`) + Click (CLI), httpx (API), Built-in XML/SVG libraries
 
 ## Architecture Decisions
 
