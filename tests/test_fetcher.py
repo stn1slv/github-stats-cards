@@ -1,6 +1,6 @@
 """Tests for contributor stats fetcher."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -11,22 +11,13 @@ from src.github.fetcher import fetch_contributor_stats
 
 @pytest.fixture
 def mock_client():
-    with (
-        patch("src.github.fetcher.GitHubClient") as MockClient,
-        patch("src.github.fetcher.fetch_user_stats") as mock_fetch_stats,
-    ):
+    with patch("src.github.fetcher.GitHubClient") as MockClient:
         client_instance = MockClient.return_value
         client_instance.fetch_image.return_value = b"fake_image_data"
-
-        mock_fetch_stats.return_value = {
-            "totalCommits": 1000,
-            "totalPRs": 100,
-            "totalIssues": 50,
-            "totalStars": 500,
-            "totalReviews": 20,
-            "followers": 10,
-            "contributedTo": 5,
-        }
+        client_instance.async_fetch_image = AsyncMock(return_value=b"fake_image_data")
+        client_instance.async_graphql_query = AsyncMock()
+        client_instance.__aenter__ = AsyncMock(return_value=client_instance)
+        client_instance.__aexit__ = AsyncMock(return_value=None)
 
         yield client_instance
 
@@ -71,7 +62,7 @@ def setup_mock_response(mock_client, repos_data):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, contribs_response]
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
 
 def test_fetch_contributor_stats_success(mock_client):
@@ -216,7 +207,7 @@ def test_fetch_contributor_stats_exclude_wildcard(mock_client):
 
 def test_fetch_error(mock_client):
     """Test error handling."""
-    mock_client.graphql_query.side_effect = [{"errors": [{"message": "Bad query"}]}]
+    mock_client.async_graphql_query.side_effect = [{"errors": [{"message": "Bad query"}]}]
 
     config = ContribFetchConfig(username="user", token="token")
     with pytest.raises(FetchError, match="GraphQL error"):
@@ -255,7 +246,7 @@ def test_fetch_contributor_stats_partial_error(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, error_response, success_response]
+    mock_client.async_graphql_query.side_effect = [years_response, error_response, success_response]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)
@@ -292,7 +283,7 @@ def test_fetch_contributor_stats_deduplication(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, contribs_response]
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)
@@ -343,7 +334,7 @@ def test_fetch_contributor_stats_rank_calculation(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, response_2024]
+    mock_client.async_graphql_query.side_effect = [years_response, response_2024]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)
@@ -357,3 +348,11 @@ def test_fetch_contributor_stats_rank_calculation(mock_client):
     # Check Repo A
     a_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-a")
     assert a_repo["rank_level"] == "A-"  # 1001 Stars, 50 commits
+
+
+@pytest.mark.anyio
+async def test_fetch_contributor_stats_inside_event_loop():
+    """Test that fetch_contributor_stats raises FetchError when called inside a running loop."""
+    config = ContribFetchConfig(username="user", token="token")
+    with pytest.raises(FetchError, match="event loop is already running"):
+        fetch_contributor_stats(config)

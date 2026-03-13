@@ -7,8 +7,8 @@ The project is a fully functional, highly modular Python CLI tool. It supports *
 - **Language:** Python 3.13+
 - **Dependency Management:** `uv`
 - **CLI Framework:** `click`
-- **HTTP Client:** `requests` (via centralized `GitHubClient`)
-- **Testing:** `pytest` with `pytest-cov` and `pytest-mock`
+- **HTTP Client:** `httpx` (via centralized `GitHubClient`, supports async)
+- **Testing:** `pytest` with `pytest-cov`, `pytest-mock`, and `anyio` (for async tests)
 - **Formatting/Linting:** `ruff`, `black`, `mypy`
 - **Build System:** `hatchling`
 
@@ -56,6 +56,10 @@ src/
 - All new features must align with the 3-tier sub-package architecture.
 
 ## Recent Changes
+- **Async HTTP Migration (2026-03-13):** Migrated HTTP boundary from `requests` to `httpx`.
+  - Added async capabilities to `GitHubClient` for concurrent fetching.
+  - Refactored `fetch_contributor_stats` to fetch years and avatars in parallel using `asyncio.gather`.
+  - Updated test suite with `AsyncMock` and improved overall coverage to >90%.
 - **Rework Ranking (2026-02-20):** Shifted `contrib` card ranking to be repository-centric. [Source: 002-rework-ranking]
   - Implemented `calculate_repo_rank` based on Stars + Repo Total Commits.
   - Renamed `calculate_rank` to `calculate_user_rank` for clarity.

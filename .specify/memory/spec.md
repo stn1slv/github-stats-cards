@@ -81,7 +81,7 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
   - Repository exclusion MUST support wildcard (*) matching and owner-omitted matching (e.g., "awesome-*" matches any repo starting with "awesome-" regardless of owner). Matching MUST be case-insensitive.
 
 ## Non-Functional Requirements
-- **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck).
+- **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck, mitigated by parallel async fetching using `httpx` and `asyncio`).
 - **NFR-002: Reliability** - Handle API errors and rate limiting gracefully.
 - **NFR-003: Extensibility** - Easy to add new card types, themes, or layouts due to modular 3-tier sub-package structure.
 
@@ -128,7 +128,7 @@ TypedDict representing a contributed repository with name, stars, rank level, an
 `cli.top_langs` -> `github.langs_fetcher.fetch_top_languages` -> `github.client.graphql_query` -> `rendering.langs.render_top_languages` -> `rendering.base.render_card` -> Output File
 
 **3. Contributor Card Flow:**
-`cli.contrib` -> `github.fetcher.fetch_contributor_stats` -> `github.client.graphql_query` -> `github.rank.calculate_repo_rank` -> `github.client.fetch_image` -> `rendering.contrib.render_contrib_card` -> `rendering.base.render_card` -> Output File
+`cli.contrib` -> `github.fetcher.fetch_contributor_stats` (runs async loop) -> `github.fetcher.async_fetch_contributor_stats` -> `github.client.async_graphql_query` & `github.client.async_fetch_image` (concurrently) -> `github.rank.calculate_repo_rank` -> `rendering.contrib.render_contrib_card` -> `rendering.base.render_card` -> Output File
 
 ### Layered Architecture (Sub-packages)
 - **Core (`src/core/`):** Fundamental logic, constants, and shared configuration.

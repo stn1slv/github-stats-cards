@@ -52,6 +52,20 @@
 
 **Tasks Completed:** 22 tasks
 
+### [Async HTTP Migration] - 2026-03-13
+**What was added:**
+- Replaced `requests` with `httpx` for all API interactions.
+- Added asynchronous methods (`async_graphql_query`, `async_fetch_image`) to `GitHubClient`.
+- Refactored `fetch_contributor_stats` to use `asyncio.gather` for parallel fetching of contribution years and repository avatars.
+- Updated test suite to handle async mocks and improved coverage for `GitHubClient` and fetchers (>90%).
+- Added context manager support to `GitHubClient` for efficient connection pooling.
+
+**New Components:**
+- `src/github/client.py`: Async methods and context managers.
+- `src/github/fetcher.py`: `async_fetch_contributor_stats`.
+
+**Tasks Completed:** Migration to `httpx`, performance optimization via parallelism, test coverage improvements.
+
 ### [Rework Ranking] - 2026-02-20
 **Branch:** `002-rework-ranking`
 **Spec:** `002-rework-ranking`

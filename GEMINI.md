@@ -8,7 +8,7 @@
 *   **Language:** Python 3.13+
 *   **Package Management:** `uv`
 *   **CLI Framework:** `click`
-*   **HTTP Client:** `requests`
+*   **HTTP Client:** `httpx`
 *   **Testing:** `pytest`
 
 **Architecture:**
@@ -62,15 +62,22 @@ The project uses `uv` for all lifecycle tasks.
 *   **Modular Design:** Code must reside in the appropriate sub-package (`core`, `github`, or `rendering`). No circular dependencies.
 *   **Contribution:** Follow the guidelines in `CONTRIBUTING.md`. Use Conventional Commits for commit messages.
 
+## Development Rules
+
+### Mandatory Validation (2026-03-13)
+- **Rule:** After EACH code change (even small ones), the agent MUST run `make format lint test`.
+- **Rationale:** Ensures that formatting is consistent, no linting regressions are introduced, and existing/new tests continue to pass. Verification is the only path to finality.
+- **Gotcha:** Never skip this step before declaring a task complete. If `lint` fails due to fixable issues (like imports), use `make lint-fix`.
+
 ## Active Technologies
-- Python 3.13+ (Managed by `uv`) + Click (CLI), Requests (API), Built-in XML/SVG libraries
+- Python 3.13+ (Managed by `uv`) + Click (CLI), httpx (API), Built-in XML/SVG libraries
 
 ## Architecture Decisions
 
 ### `GitHubClient` is the sole HTTP boundary (2026-02-22)
-- **Decision:** `GitHubClient` catches all `requests.exceptions.RequestException` and re-raises as `APIError`. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `requests`.
-- **Rationale:** Prevents the HTTP library from leaking into domain logic. Swapping `requests` for `httpx` in the future only touches `client.py`.
-- **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `requests.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
+- **Decision:** `GitHubClient` catches all `httpx.HTTPError` in query/rest methods and re-raises as `APIError`. Image fetching methods intentionally swallow errors and return `None` to prevent missing avatars from breaking the entire card. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `httpx`.
+- **Rationale:** Prevents the HTTP library from leaking into domain logic.
+- **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `httpx.Client.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
 
 ### Config class hierarchy (2026-02-22)
 - **Decision:** `CardStyleConfig(BaseConfig)` holds 11 shared visual fields (theme, colors, border, animations). All card render configs inherit from it. Fetch configs inherit directly from `BaseConfig`.
@@ -100,10 +107,10 @@ The project uses `uv` for all lifecycle tasks.
 ### [Code Quality Refactor] (2026-02-22)
 - Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
 - Extracted `CardStyleConfig` base class; unified fetcher APIs to accept config objects.
-- Moved HTTP error handling into `GitHubClient`; removed `import requests` from fetchers.
+- Moved HTTP error handling into `GitHubClient`; removed `import httpx` from fetchers.
 - Decomposed `fetch_contributor_stats()` into `_fetch_contribution_years()`, `_process_year_contributions()`, `_build_contributor_repos()`.
 - Renamed `FetchConfig` → `UserStatsFetchConfig` for naming consistency.
-- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `requests`.
+- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `httpx`.
 
 ### [Rework Ranking] (2026-02-20)
 - Updated `contrib` card ranking logic to be repository-centric.

@@ -1,5 +1,6 @@
 """GitHub API client for fetching user statistics."""
 
+import asyncio
 import base64
 from typing import Any, TypedDict
 
@@ -60,250 +61,250 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
     Raises:
         FetchError: If API request fails
     """
-    client = GitHubClient(config.token)
-    username = config.username
-    include_all_commits = config.include_all_commits
-    commits_year = config.commits_year
-    show = config.show or []
+    with GitHubClient(config.token) as client:
+        username = config.username
+        include_all_commits = config.include_all_commits
+        commits_year = config.commits_year
+        show = config.show or []
 
-    # Build date range for commits_year filter
-    from_date = None
-    to_date = None
-    if commits_year is not None:
-        from_date = f"{commits_year}-01-01T00:00:00Z"
-        to_date = f"{commits_year}-12-31T23:59:59Z"
+        # Build date range for commits_year filter
+        from_date = None
+        to_date = None
+        if commits_year is not None:
+            from_date = f"{commits_year}-01-01T00:00:00Z"
+            to_date = f"{commits_year}-12-31T23:59:59Z"
 
-    # GraphQL query with optional date range for commits
-    variables: dict[str, Any] = {"login": username}
-    if commits_year is not None:
-        query = """
-        query userInfo($login: String!, $from: DateTime!, $to: DateTime!) {
-          user(login: $login) {
-            name
-            login
-            contributionsCollection(from: $from, to: $to) {
-              totalCommitContributions
-              totalPullRequestReviewContributions
-            }
-            repositoriesContributedTo(
-              first: 1
-              includeUserRepositories: true
-              contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]
-            ) {
-              totalCount
-            }
-            pullRequests(first: 1) {
-              totalCount
-            }
-            mergedPullRequests: pullRequests(states: MERGED) {
-              totalCount
-            }
-            openIssues: issues(states: OPEN) {
-              totalCount
-            }
-            closedIssues: issues(states: CLOSED) {
-              totalCount
-            }
-            followers {
-              totalCount
-            }
-            repositories(
-              first: 100
-              ownerAffiliations: OWNER
-              orderBy: {direction: DESC, field: STARGAZERS}
-            ) {
-              nodes {
-                stargazers {
+        # GraphQL query with optional date range for commits
+        variables: dict[str, Any] = {"login": username}
+        if commits_year is not None:
+            query = """
+            query userInfo($login: String!, $from: DateTime!, $to: DateTime!) {
+              user(login: $login) {
+                name
+                login
+                contributionsCollection(from: $from, to: $to) {
+                  totalCommitContributions
+                  totalPullRequestReviewContributions
+                }
+                repositoriesContributedTo(
+                  first: 1
+                  includeUserRepositories: true
+                  contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]
+                ) {
                   totalCount
                 }
-              }
-              pageInfo {
-                hasNextPage
-                endCursor
-              }
-            }
-          }
-        }
-        """
-        variables.update({"from": from_date, "to": to_date})
-    else:
-        query = """
-        query userInfo($login: String!) {
-          user(login: $login) {
-            name
-            login
-            contributionsCollection {
-              totalCommitContributions
-              totalPullRequestReviewContributions
-            }
-            repositoriesContributedTo(
-              first: 1
-              includeUserRepositories: true
-              contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]
-            ) {
-              totalCount
-            }
-            pullRequests(first: 1) {
-              totalCount
-            }
-            mergedPullRequests: pullRequests(states: MERGED) {
-              totalCount
-            }
-            openIssues: issues(states: OPEN) {
-              totalCount
-            }
-            closedIssues: issues(states: CLOSED) {
-              totalCount
-            }
-            followers {
-              totalCount
-            }
-            repositories(
-              first: 100
-              ownerAffiliations: OWNER
-              orderBy: {direction: DESC, field: STARGAZERS}
-            ) {
-              nodes {
-                stargazers {
+                pullRequests(first: 1) {
                   totalCount
                 }
-              }
-              pageInfo {
-                hasNextPage
-                endCursor
-              }
-            }
-          }
-        }
-        """
-
-    # Execute GraphQL query
-    try:
-        data = client.graphql_query(query, variables)
-
-        if "errors" in data:
-            error_msg = data["errors"][0].get("message", "Unknown GraphQL error")
-            raise FetchError(f"GraphQL error: {error_msg}")
-
-        user = data.get("data", {}).get("user")
-        if not user:
-            raise FetchError(f"User '{username}' not found")
-
-    except APIError as e:
-        raise FetchError(f"Failed to fetch data from GitHub: {e}") from e
-
-    # Calculate total stars
-    total_stars = sum(repo["stargazers"]["totalCount"] for repo in user["repositories"]["nodes"])
-
-    # Handle pagination for repositories if needed
-    has_next_page = user["repositories"]["pageInfo"]["hasNextPage"]
-    end_cursor = user["repositories"]["pageInfo"]["endCursor"]
-
-    while has_next_page:
-        pagination_query = """
-        query userRepos($login: String!, $after: String!) {
-          user(login: $login) {
-            repositories(
-              first: 100
-              after: $after
-              ownerAffiliations: OWNER
-              orderBy: {direction: DESC, field: STARGAZERS}
-            ) {
-              nodes {
-                stargazers {
+                mergedPullRequests: pullRequests(states: MERGED) {
                   totalCount
                 }
-              }
-              pageInfo {
-                hasNextPage
-                endCursor
+                openIssues: issues(states: OPEN) {
+                  totalCount
+                }
+                closedIssues: issues(states: CLOSED) {
+                  totalCount
+                }
+                followers {
+                  totalCount
+                }
+                repositories(
+                  first: 100
+                  ownerAffiliations: OWNER
+                  orderBy: {direction: DESC, field: STARGAZERS}
+                ) {
+                  nodes {
+                    stargazers {
+                      totalCount
+                    }
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
               }
             }
-          }
-        }
-        """
+            """
+            variables.update({"from": from_date, "to": to_date})
+        else:
+            query = """
+            query userInfo($login: String!) {
+              user(login: $login) {
+                name
+                login
+                contributionsCollection {
+                  totalCommitContributions
+                  totalPullRequestReviewContributions
+                }
+                repositoriesContributedTo(
+                  first: 1
+                  includeUserRepositories: true
+                  contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]
+                ) {
+                  totalCount
+                }
+                pullRequests(first: 1) {
+                  totalCount
+                }
+                mergedPullRequests: pullRequests(states: MERGED) {
+                  totalCount
+                }
+                openIssues: issues(states: OPEN) {
+                  totalCount
+                }
+                closedIssues: issues(states: CLOSED) {
+                  totalCount
+                }
+                followers {
+                  totalCount
+                }
+                repositories(
+                  first: 100
+                  ownerAffiliations: OWNER
+                  orderBy: {direction: DESC, field: STARGAZERS}
+                ) {
+                  nodes {
+                    stargazers {
+                      totalCount
+                    }
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
+              }
+            }
+            """
 
+        # Execute GraphQL query
         try:
-            page_data = client.graphql_query(pagination_query, {"login": username, "after": end_cursor})
+            data = client.graphql_query(query, variables)
 
-            page_user = page_data.get("data", {}).get("user")
-            if page_user:
-                total_stars += sum(repo["stargazers"]["totalCount"] for repo in page_user["repositories"]["nodes"])
-                has_next_page = page_user["repositories"]["pageInfo"]["hasNextPage"]
-                end_cursor = page_user["repositories"]["pageInfo"]["endCursor"]
-            else:
+            if "errors" in data:
+                error_msg = data["errors"][0].get("message", "Unknown GraphQL error")
+                raise FetchError(f"GraphQL error: {error_msg}")
+
+            user = data.get("data", {}).get("user")
+            if not user:
+                raise FetchError(f"User '{username}' not found")
+
+        except APIError as e:
+            raise FetchError(f"Failed to fetch data from GitHub: {e}") from e
+
+        # Calculate total stars
+        total_stars = sum(repo["stargazers"]["totalCount"] for repo in user["repositories"]["nodes"])
+
+        # Handle pagination for repositories if needed
+        has_next_page = user["repositories"]["pageInfo"]["hasNextPage"]
+        end_cursor = user["repositories"]["pageInfo"]["endCursor"]
+
+        while has_next_page:
+            pagination_query = """
+            query userRepos($login: String!, $after: String!) {
+              user(login: $login) {
+                repositories(
+                  first: 100
+                  after: $after
+                  ownerAffiliations: OWNER
+                  orderBy: {direction: DESC, field: STARGAZERS}
+                ) {
+                  nodes {
+                    stargazers {
+                      totalCount
+                    }
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
+              }
+            }
+            """
+
+            try:
+                page_data = client.graphql_query(pagination_query, {"login": username, "after": end_cursor})
+
+                page_user = page_data.get("data", {}).get("user")
+                if page_user:
+                    total_stars += sum(repo["stargazers"]["totalCount"] for repo in page_user["repositories"]["nodes"])
+                    has_next_page = page_user["repositories"]["pageInfo"]["hasNextPage"]
+                    end_cursor = page_user["repositories"]["pageInfo"]["endCursor"]
+                else:
+                    break
+
+            except APIError:
+                # If pagination fails, continue with what we have
                 break
 
-        except APIError:
-            # If pagination fails, continue with what we have
-            break
+        # Get total commits
+        total_commits = user["contributionsCollection"]["totalCommitContributions"]
 
-    # Get total commits
-    total_commits = user["contributionsCollection"]["totalCommitContributions"]
+        if include_all_commits:
+            # Use REST API to get all-time commit count
+            try:
+                search_data = client.rest_get(
+                    f"{API_BASE_URL}/search/commits?q=author:{username}",
+                    headers={"Accept": "application/vnd.github.cloak-preview+json"},
+                )
+                total_commits = search_data.get("total_count", total_commits)
+            except APIError:
+                # If REST API fails, use GraphQL data
+                pass
 
-    if include_all_commits:
-        # Use REST API to get all-time commit count
+        # Use REST API to get accurate issue count (includes issues in repos user doesn't own)
+        total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
         try:
-            search_data = client.rest_get(
-                f"{API_BASE_URL}/search/commits?q=author:{username}",
-                headers={"Accept": "application/vnd.github.cloak-preview+json"},
-            )
-            total_commits = search_data.get("total_count", total_commits)
+            issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue")
+            total_issues = issues_data.get("total_count", total_issues)
         except APIError:
             # If REST API fails, use GraphQL data
             pass
 
-    # Use REST API to get accurate issue count (includes issues in repos user doesn't own)
-    total_issues = user["openIssues"]["totalCount"] + user["closedIssues"]["totalCount"]
-    try:
-        issues_data = client.rest_get(f"{API_BASE_URL}/search/issues?q=author:{username}+type:issue")
-        total_issues = issues_data.get("total_count", total_issues)
-    except APIError:
-        # If REST API fails, use GraphQL data
-        pass
+        # Fetch additional stats if requested
+        discussions_started = 0
+        discussions_answered = 0
 
-    # Fetch additional stats if requested
-    discussions_started = 0
-    discussions_answered = 0
+        if "discussions_started" in show or "discussions_answered" in show:
+            discussions_query = """
+            query userDiscussions($login: String!) {
+              user(login: $login) {
+                repositoryDiscussions {
+                  totalCount
+                }
+                repositoryDiscussionComments(onlyAnswers: true) {
+                  totalCount
+                }
+              }
+            }
+            """
 
-    if "discussions_started" in show or "discussions_answered" in show:
-        discussions_query = """
-        query userDiscussions($login: String!) {
-          user(login: $login) {
-            repositoryDiscussions {
-              totalCount
-            }
-            repositoryDiscussionComments(onlyAnswers: true) {
-              totalCount
-            }
-          }
+            try:
+                disc_data = client.graphql_query(discussions_query, {"login": username})
+                disc_user = disc_data.get("data", {}).get("user", {})
+
+                discussions_started = disc_user.get("repositoryDiscussions", {}).get("totalCount", 0)
+                discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get("totalCount", 0)
+            except APIError:
+                # If discussions query fails, continue with zeros
+                pass
+
+        return {
+            "name": user["name"] or user["login"],
+            "login": user["login"],
+            "totalCommits": total_commits,
+            "totalPRs": user["pullRequests"]["totalCount"],
+            "mergedPRs": user["mergedPullRequests"]["totalCount"],
+            "totalIssues": total_issues,
+            "totalStars": total_stars,
+            "contributedTo": user["repositoriesContributedTo"]["totalCount"],
+            "followers": user["followers"]["totalCount"],
+            "totalReviews": user["contributionsCollection"]["totalPullRequestReviewContributions"],
+            "discussionsStarted": discussions_started,
+            "discussionsAnswered": discussions_answered,
         }
-        """
-
-        try:
-            disc_data = client.graphql_query(discussions_query, {"login": username})
-            disc_user = disc_data.get("data", {}).get("user", {})
-
-            discussions_started = disc_user.get("repositoryDiscussions", {}).get("totalCount", 0)
-            discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get("totalCount", 0)
-        except APIError:
-            # If discussions query fails, continue with zeros
-            pass
-
-    return {
-        "name": user["name"] or user["login"],
-        "login": user["login"],
-        "totalCommits": total_commits,
-        "totalPRs": user["pullRequests"]["totalCount"],
-        "mergedPRs": user["mergedPullRequests"]["totalCount"],
-        "totalIssues": total_issues,
-        "totalStars": total_stars,
-        "contributedTo": user["repositoriesContributedTo"]["totalCount"],
-        "followers": user["followers"]["totalCount"],
-        "totalReviews": user["contributionsCollection"]["totalPullRequestReviewContributions"],
-        "discussionsStarted": discussions_started,
-        "discussionsAnswered": discussions_answered,
-    }
 
 
 _CONTRIB_YEARS_QUERY = """
@@ -363,8 +364,8 @@ query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {{
 """
 
 
-def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
-    """Fetch the years in which a user has made contributions.
+async def _async_fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
+    """Fetch the years in which a user has made contributions asynchronously.
 
     Args:
         client: Authenticated GitHub API client
@@ -377,7 +378,7 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
         FetchError: If API request fails or user not found
     """
     try:
-        data = client.graphql_query(_CONTRIB_YEARS_QUERY, {"login": username})
+        data = await client.async_graphql_query(_CONTRIB_YEARS_QUERY, {"login": username})
         if "errors" in data:
             raise FetchError(f"GraphQL error: {data['errors'][0].get('message')}")
 
@@ -392,28 +393,32 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
     return sorted(years, reverse=True)[:5]
 
 
-def _process_year_contributions(
+async def _async_process_year_contributions(
     client: GitHubClient,
     username: str,
     year: int,
     raw_repos_map: dict[str, dict[str, Any]],
+    lock: asyncio.Lock,
 ) -> None:
-    """Fetch and merge one year's contribution data into *raw_repos_map*.
+    """Fetch and merge one year's contribution data into *raw_repos_map* asynchronously.
 
-    The map is mutated in-place: new repos are added and existing ones have
-    their contribution counts accumulated.
+    The map is mutated in-place with lock protection.
 
     Args:
         client: Authenticated GitHub API client
         username: GitHub username
         year: Calendar year to fetch
         raw_repos_map: Mutable accumulator mapping ``nameWithOwner`` to repo data
+        lock: Asyncio lock for raw_repos_map protection
     """
     from_date = f"{year}-01-01T00:00:00Z"
     to_date = f"{year}-12-31T23:59:59Z"
 
     try:
-        c_data = client.graphql_query(_CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date})
+        c_data = await client.async_graphql_query(
+            _CONTRIB_QUERY,
+            {"login": username, "from": from_date, "to": to_date},
+        )
 
         if "errors" in c_data:
             return
@@ -441,42 +446,43 @@ def _process_year_contributions(
 
                 name = repo["nameWithOwner"]
 
-                if name not in raw_repos_map:
-                    total_repo_commits = 0
-                    obj = repo.get("object")
-                    if obj and "history" in obj:
-                        total_repo_commits = obj["history"]["totalCount"]
-
-                    raw_repos_map[name] = {
-                        "name": name,
-                        "stars": repo["stargazers"]["totalCount"],
-                        "avatar_url": repo["owner"]["avatarUrl"],
-                        "commits": 0,
-                        "prs": 0,
-                        "issues": 0,
-                        "reviews": 0,
-                        "total_repo_commits": total_repo_commits,
-                    }
-                else:
-                    if raw_repos_map[name]["total_repo_commits"] == 0:
+                async with lock:
+                    if name not in raw_repos_map:
+                        total_repo_commits = 0
                         obj = repo.get("object")
                         if obj and "history" in obj:
-                            raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
+                            total_repo_commits = obj["history"]["totalCount"]
 
-                raw_repos_map[name][stats_key] += count
+                        raw_repos_map[name] = {
+                            "name": name,
+                            "stars": repo["stargazers"]["totalCount"],
+                            "avatar_url": repo["owner"]["avatarUrl"],
+                            "commits": 0,
+                            "prs": 0,
+                            "issues": 0,
+                            "reviews": 0,
+                            "total_repo_commits": total_repo_commits,
+                        }
+                    else:
+                        if raw_repos_map[name]["total_repo_commits"] == 0:
+                            obj = repo.get("object")
+                            if obj and "history" in obj:
+                                raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
+
+                    raw_repos_map[name][stats_key] += count
 
     except APIError:
         # Continue to next year on error
         return
 
 
-def _build_contributor_repos(
+async def _async_build_contributor_repos(
     client: GitHubClient,
     raw_repos_map: dict[str, dict[str, Any]],
     exclude_repo: list[str],
     limit: int,
 ) -> list[ContributorRepo]:
-    """Rank, filter, sort, slice and enrich raw repo data.
+    """Rank, filter, sort, slice and enrich raw repo data asynchronously.
 
     Args:
         client: Authenticated GitHub API client (for avatar fetching)
@@ -500,34 +506,49 @@ def _build_contributor_repos(
     repos_data.sort(key=lambda r: r["stars"], reverse=True)
     repos_data = repos_data[:limit]
 
-    # Fetch avatars and build final typed list
-    final_repos: list[ContributorRepo] = []
-    for repo in repos_data:
+    # Fetch avatars asynchronously
+    async def fetch_avatar(repo: dict[str, Any]) -> ContributorRepo:
         avatar_b64 = None
         if repo["avatar_url"]:
-            image_data = client.fetch_image(repo["avatar_url"])
+            image_data = await client.async_fetch_image(repo["avatar_url"])
             if image_data:
                 avatar_b64 = base64.b64encode(image_data).decode("utf-8")
 
-        final_repos.append(
-            {
-                "name": repo["name"],
-                "stars": repo["stars"],
-                "commits": repo["commits"],
-                "prs": repo["prs"],
-                "issues": repo["issues"],
-                "reviews": repo["reviews"],
-                "rank_level": repo["rank_level"],
-                "avatar_b64": avatar_b64,
-            }
-        )
+        return {
+            "name": repo["name"],
+            "stars": repo["stars"],
+            "commits": repo["commits"],
+            "prs": repo["prs"],
+            "issues": repo["issues"],
+            "reviews": repo["reviews"],
+            "rank_level": repo["rank_level"],
+            "avatar_b64": avatar_b64,
+        }
 
-    return final_repos
+    tasks = [fetch_avatar(repo) for repo in repos_data]
+    return await asyncio.gather(*tasks)
+
+
+async def async_fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
+    """Async implementation of fetch_contributor_stats."""
+    async with GitHubClient(config.token) as client:
+        years = await _async_fetch_contribution_years(client, config.username)
+
+        raw_repos_map: dict[str, dict[str, Any]] = {}
+        lock = asyncio.Lock()
+        tasks = [
+            _async_process_year_contributions(client, config.username, year, raw_repos_map, lock) for year in years
+        ]
+        await asyncio.gather(*tasks)
+
+        repos = await _async_build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
+
+        return {"repos": repos}
 
 
 def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     """
-    Fetch contributor statistics (repos contributed to).
+    Fetch contributor statistics (repos contributed to) in parallel.
 
     Args:
         config: Fetch configuration
@@ -536,16 +557,17 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         Contributor statistics
 
     Raises:
-        FetchError: If API request fails
+        FetchError: If API request fails or if called from within an existing event loop.
     """
-    client = GitHubClient(config.token)
+    try:
+        asyncio.get_running_loop()
+        has_loop = True
+    except RuntimeError:
+        has_loop = False
 
-    years = _fetch_contribution_years(client, config.username)
+    if has_loop:
+        raise FetchError(
+            "An asyncio event loop is already running. Please use `async_fetch_contributor_stats` instead."
+        )
 
-    raw_repos_map: dict[str, dict[str, Any]] = {}
-    for year in years:
-        _process_year_contributions(client, config.username, year, raw_repos_map)
-
-    repos = _build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
-
-    return {"repos": repos}
+    return asyncio.run(async_fetch_contributor_stats(config))
