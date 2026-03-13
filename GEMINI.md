@@ -62,6 +62,13 @@ The project uses `uv` for all lifecycle tasks.
 *   **Modular Design:** Code must reside in the appropriate sub-package (`core`, `github`, or `rendering`). No circular dependencies.
 *   **Contribution:** Follow the guidelines in `CONTRIBUTING.md`. Use Conventional Commits for commit messages.
 
+## Development Rules
+
+### Mandatory Validation (2026-03-13)
+- **Rule:** After EACH code change (even small ones), the agent MUST run `make format lint test`.
+- **Rationale:** Ensures that formatting is consistent, no linting regressions are introduced, and existing/new tests continue to pass. Verification is the only path to finality.
+- **Gotcha:** Never skip this step before declaring a task complete. If `lint` fails due to fixable issues (like imports), use `make lint-fix`.
+
 ## Active Technologies
 - Python 3.13+ (Managed by `uv`) + Click (CLI), Requests (API), Built-in XML/SVG libraries
 

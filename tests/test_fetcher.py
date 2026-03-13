@@ -1,6 +1,6 @@
 """Tests for contributor stats fetcher."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -17,6 +17,8 @@ def mock_client():
     ):
         client_instance = MockClient.return_value
         client_instance.fetch_image.return_value = b"fake_image_data"
+        client_instance.async_fetch_image = AsyncMock(return_value=b"fake_image_data")
+        client_instance.async_graphql_query = AsyncMock()
 
         mock_fetch_stats.return_value = {
             "totalCommits": 1000,
@@ -71,7 +73,7 @@ def setup_mock_response(mock_client, repos_data):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, contribs_response]
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
 
 def test_fetch_contributor_stats_success(mock_client):
@@ -216,7 +218,7 @@ def test_fetch_contributor_stats_exclude_wildcard(mock_client):
 
 def test_fetch_error(mock_client):
     """Test error handling."""
-    mock_client.graphql_query.side_effect = [{"errors": [{"message": "Bad query"}]}]
+    mock_client.async_graphql_query.side_effect = [{"errors": [{"message": "Bad query"}]}]
 
     config = ContribFetchConfig(username="user", token="token")
     with pytest.raises(FetchError, match="GraphQL error"):
@@ -255,7 +257,7 @@ def test_fetch_contributor_stats_partial_error(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, error_response, success_response]
+    mock_client.async_graphql_query.side_effect = [years_response, error_response, success_response]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)
@@ -292,7 +294,7 @@ def test_fetch_contributor_stats_deduplication(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, contribs_response]
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)
@@ -343,7 +345,7 @@ def test_fetch_contributor_stats_rank_calculation(mock_client):
         }
     }
 
-    mock_client.graphql_query.side_effect = [years_response, response_2024]
+    mock_client.async_graphql_query.side_effect = [years_response, response_2024]
 
     config = ContribFetchConfig(username="user", token="token", limit=5)
     stats = fetch_contributor_stats(config)

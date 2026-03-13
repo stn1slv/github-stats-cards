@@ -1,5 +1,6 @@
 """GitHub API client for fetching user statistics."""
 
+import asyncio
 import base64
 from typing import Any, TypedDict
 
@@ -363,8 +364,8 @@ query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {{
 """
 
 
-def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
-    """Fetch the years in which a user has made contributions.
+async def _async_fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
+    """Fetch the years in which a user has made contributions asynchronously.
 
     Args:
         client: Authenticated GitHub API client
@@ -377,7 +378,7 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
         FetchError: If API request fails or user not found
     """
     try:
-        data = client.graphql_query(_CONTRIB_YEARS_QUERY, {"login": username})
+        data = await client.async_graphql_query(_CONTRIB_YEARS_QUERY, {"login": username})
         if "errors" in data:
             raise FetchError(f"GraphQL error: {data['errors'][0].get('message')}")
 
@@ -392,28 +393,29 @@ def _fetch_contribution_years(client: GitHubClient, username: str) -> list[int]:
     return sorted(years, reverse=True)[:5]
 
 
-def _process_year_contributions(
+async def _async_process_year_contributions(
     client: GitHubClient,
     username: str,
     year: int,
     raw_repos_map: dict[str, dict[str, Any]],
+    lock: asyncio.Lock,
 ) -> None:
-    """Fetch and merge one year's contribution data into *raw_repos_map*.
+    """Fetch and merge one year's contribution data into *raw_repos_map* asynchronously.
 
-    The map is mutated in-place: new repos are added and existing ones have
-    their contribution counts accumulated.
+    The map is mutated in-place with lock protection.
 
     Args:
         client: Authenticated GitHub API client
         username: GitHub username
         year: Calendar year to fetch
         raw_repos_map: Mutable accumulator mapping ``nameWithOwner`` to repo data
+        lock: Asyncio lock for raw_repos_map protection
     """
     from_date = f"{year}-01-01T00:00:00Z"
     to_date = f"{year}-12-31T23:59:59Z"
 
     try:
-        c_data = client.graphql_query(_CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date})
+        c_data = await client.async_graphql_query(_CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date})
 
         if "errors" in c_data:
             return
@@ -441,42 +443,43 @@ def _process_year_contributions(
 
                 name = repo["nameWithOwner"]
 
-                if name not in raw_repos_map:
-                    total_repo_commits = 0
-                    obj = repo.get("object")
-                    if obj and "history" in obj:
-                        total_repo_commits = obj["history"]["totalCount"]
-
-                    raw_repos_map[name] = {
-                        "name": name,
-                        "stars": repo["stargazers"]["totalCount"],
-                        "avatar_url": repo["owner"]["avatarUrl"],
-                        "commits": 0,
-                        "prs": 0,
-                        "issues": 0,
-                        "reviews": 0,
-                        "total_repo_commits": total_repo_commits,
-                    }
-                else:
-                    if raw_repos_map[name]["total_repo_commits"] == 0:
+                async with lock:
+                    if name not in raw_repos_map:
+                        total_repo_commits = 0
                         obj = repo.get("object")
                         if obj and "history" in obj:
-                            raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
+                            total_repo_commits = obj["history"]["totalCount"]
 
-                raw_repos_map[name][stats_key] += count
+                        raw_repos_map[name] = {
+                            "name": name,
+                            "stars": repo["stargazers"]["totalCount"],
+                            "avatar_url": repo["owner"]["avatarUrl"],
+                            "commits": 0,
+                            "prs": 0,
+                            "issues": 0,
+                            "reviews": 0,
+                            "total_repo_commits": total_repo_commits,
+                        }
+                    else:
+                        if raw_repos_map[name]["total_repo_commits"] == 0:
+                            obj = repo.get("object")
+                            if obj and "history" in obj:
+                                raw_repos_map[name]["total_repo_commits"] = obj["history"]["totalCount"]
+
+                    raw_repos_map[name][stats_key] += count
 
     except APIError:
         # Continue to next year on error
         return
 
 
-def _build_contributor_repos(
+async def _async_build_contributor_repos(
     client: GitHubClient,
     raw_repos_map: dict[str, dict[str, Any]],
     exclude_repo: list[str],
     limit: int,
 ) -> list[ContributorRepo]:
-    """Rank, filter, sort, slice and enrich raw repo data.
+    """Rank, filter, sort, slice and enrich raw repo data asynchronously.
 
     Args:
         client: Authenticated GitHub API client (for avatar fetching)
@@ -500,34 +503,48 @@ def _build_contributor_repos(
     repos_data.sort(key=lambda r: r["stars"], reverse=True)
     repos_data = repos_data[:limit]
 
-    # Fetch avatars and build final typed list
-    final_repos: list[ContributorRepo] = []
-    for repo in repos_data:
+    # Fetch avatars asynchronously
+    async def fetch_avatar(repo: dict[str, Any]) -> ContributorRepo:
         avatar_b64 = None
         if repo["avatar_url"]:
-            image_data = client.fetch_image(repo["avatar_url"])
+            image_data = await client.async_fetch_image(repo["avatar_url"])
             if image_data:
                 avatar_b64 = base64.b64encode(image_data).decode("utf-8")
 
-        final_repos.append(
-            {
-                "name": repo["name"],
-                "stars": repo["stars"],
-                "commits": repo["commits"],
-                "prs": repo["prs"],
-                "issues": repo["issues"],
-                "reviews": repo["reviews"],
-                "rank_level": repo["rank_level"],
-                "avatar_b64": avatar_b64,
-            }
-        )
+        return {
+            "name": repo["name"],
+            "stars": repo["stars"],
+            "commits": repo["commits"],
+            "prs": repo["prs"],
+            "issues": repo["issues"],
+            "reviews": repo["reviews"],
+            "rank_level": repo["rank_level"],
+            "avatar_b64": avatar_b64,
+        }
 
-    return final_repos
+    tasks = [fetch_avatar(repo) for repo in repos_data]
+    return await asyncio.gather(*tasks)
+
+
+async def _async_fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
+    """Async implementation of fetch_contributor_stats."""
+    client = GitHubClient(config.token)
+
+    years = await _async_fetch_contribution_years(client, config.username)
+
+    raw_repos_map: dict[str, dict[str, Any]] = {}
+    lock = asyncio.Lock()
+    tasks = [_async_process_year_contributions(client, config.username, year, raw_repos_map, lock) for year in years]
+    await asyncio.gather(*tasks)
+
+    repos = await _async_build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
+
+    return {"repos": repos}
 
 
 def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     """
-    Fetch contributor statistics (repos contributed to).
+    Fetch contributor statistics (repos contributed to) in parallel.
 
     Args:
         config: Fetch configuration
@@ -538,14 +555,4 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     Raises:
         FetchError: If API request fails
     """
-    client = GitHubClient(config.token)
-
-    years = _fetch_contribution_years(client, config.username)
-
-    raw_repos_map: dict[str, dict[str, Any]] = {}
-    for year in years:
-        _process_year_contributions(client, config.username, year, raw_repos_map)
-
-    repos = _build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
-
-    return {"repos": repos}
+    return asyncio.run(_async_fetch_contributor_stats(config))

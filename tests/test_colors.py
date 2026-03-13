@@ -3,11 +3,31 @@
 import pytest
 
 from src.rendering.colors import (
+    format_gradient,
     get_card_colors,
     is_valid_gradient,
     is_valid_hex_color,
     parse_color,
 )
+
+
+@pytest.mark.parametrize(
+    ("colors", "expected_attrs"),
+    [
+        (["0", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
+        (["90", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "0%", "y2": "100%"}),
+        (["180", "ff0000", "00ff00"], {"x1": "100%", "y1": "0%", "x2": "0%", "y2": "0%"}),
+        (["270", "ff0000", "00ff00"], {"x1": "0%", "y1": "100%", "x2": "0%", "y2": "0%"}),
+        (["not_a_number", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
+    ],
+)
+def test_format_gradient(colors: list[str], expected_attrs: dict[str, str]):
+    grad_id, grad_svg = format_gradient(colors)
+    assert grad_id == "gradient"
+    for attr, val in expected_attrs.items():
+        assert f'{attr}="{val}"' in grad_svg
+    assert 'stop-color="#ff0000"' in grad_svg
+    assert 'stop-color="#00ff00"' in grad_svg
 
 
 @pytest.mark.parametrize(
