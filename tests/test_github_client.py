@@ -165,7 +165,7 @@ async def test_context_manager(client):
             assert c == client
         mock_close.assert_called_once()
 
-    with patch("src.github.client.GitHubClient.aclose") as mock_aclose:
+    with patch("src.github.client.GitHubClient.aclose", new_callable=AsyncMock) as mock_aclose:
         async with client as c:
             assert c == client
         mock_aclose.assert_called_once()

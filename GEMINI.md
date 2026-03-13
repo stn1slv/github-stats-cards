@@ -75,7 +75,7 @@ The project uses `uv` for all lifecycle tasks.
 ## Architecture Decisions
 
 ### `GitHubClient` is the sole HTTP boundary (2026-02-22)
-- **Decision:** `GitHubClient` catches all `httpx.HTTPError` and re-raises as `APIError`. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `httpx`.
+- **Decision:** `GitHubClient` catches all `httpx.HTTPError` in query/rest methods and re-raises as `APIError`. Image fetching methods intentionally swallow errors and return `None` to prevent missing avatars from breaking the entire card. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `httpx`.
 - **Rationale:** Prevents the HTTP library from leaking into domain logic.
 - **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `httpx.Client.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
 
