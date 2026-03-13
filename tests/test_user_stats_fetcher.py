@@ -14,6 +14,7 @@ def mock_client():
     with patch("src.github.fetcher.GitHubClient") as MockClient:
         client_instance = MockClient.return_value
         client_instance.__enter__.return_value = client_instance
+        client_instance.__exit__.return_value = False
         yield client_instance
 
 
