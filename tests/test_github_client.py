@@ -61,7 +61,7 @@ async def test_async_graphql_query_success(client):
         result = await client.async_graphql_query("query", {"var": "val"})
 
         assert result == {"data": {"user": "test"}}
-        mock_httpx_client.post.assert_called_once()
+        mock_httpx_client.post.assert_awaited_once()
 
 
 @pytest.mark.anyio
@@ -74,6 +74,7 @@ async def test_async_graphql_query_error(client):
 
         with pytest.raises(APIError, match="GitHub API request failed"):
             await client.async_graphql_query("query")
+        mock_httpx_client.post.assert_awaited_once()
 
 
 def test_rest_get_success(client):
@@ -143,6 +144,7 @@ async def test_async_fetch_image_success(client):
         result = await client.async_fetch_image("https://example.com/image.png")
 
         assert result == b"image-data"
+        mock_httpx_client.get.assert_awaited_once()
 
 
 @pytest.mark.anyio
@@ -156,6 +158,7 @@ async def test_async_fetch_image_error(client):
         result = await client.async_fetch_image("https://example.com/image.png")
 
         assert result is None
+        mock_httpx_client.get.assert_awaited_once()
 
 
 @pytest.mark.anyio
