@@ -47,6 +47,7 @@ _REPO_PYTHON_JS = [
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_success(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     MockClient.return_value.graphql_query.return_value = _make_repos_response(_REPO_PYTHON_JS)
 
     config = LangsFetchConfig(username="testuser", token="testtoken")
@@ -61,6 +62,7 @@ def test_fetch_top_languages_success(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_exclude_repos(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     nodes = [
         {
             "name": "repo1",
@@ -83,6 +85,7 @@ def test_fetch_top_languages_exclude_repos(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_with_weights(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     nodes = [
         {"name": "repo1", "languages": {"edges": [{"size": 100, "node": {"name": "Python"}}]}},
         {"name": "repo2", "languages": {"edges": [{"size": 100, "node": {"name": "Python"}}]}},
@@ -98,6 +101,7 @@ def test_fetch_top_languages_with_weights(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_missing_color(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     nodes = [
         {
             "name": "repo1",
@@ -118,6 +122,7 @@ def test_fetch_top_languages_missing_color(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_api_error(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     MockClient.return_value.graphql_query.side_effect = APIError("Not Found")
 
     config = LangsFetchConfig(username="testuser", token="testtoken")
@@ -127,6 +132,7 @@ def test_fetch_top_languages_api_error(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_no_data(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     MockClient.return_value.graphql_query.return_value = {"data": None}
 
     config = LangsFetchConfig(username="testuser", token="testtoken")
@@ -136,6 +142,7 @@ def test_fetch_top_languages_no_data(MockClient):
 
 @patch("src.github.langs_fetcher.GitHubClient")
 def test_fetch_top_languages_user_not_found(MockClient):
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
     MockClient.return_value.graphql_query.return_value = {"data": {"user": None}}
 
     config = LangsFetchConfig(username="testuser", token="testtoken")

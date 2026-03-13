@@ -13,6 +13,7 @@ from src.github.fetcher import fetch_user_stats
 def mock_client():
     with patch("src.github.fetcher.GitHubClient") as MockClient:
         client_instance = MockClient.return_value
+        client_instance.__enter__.return_value = client_instance
         yield client_instance
 
 

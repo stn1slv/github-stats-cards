@@ -32,85 +32,85 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
     Raises:
         LanguageFetchError: If API request fails or returns errors
     """
-    client = GitHubClient(config.token)
-    username = config.username
-    exclude_repo = config.exclude_repo or []
-    size_weight = config.size_weight
-    count_weight = config.count_weight
+    with GitHubClient(config.token) as client:
+        username = config.username
+        exclude_repo = config.exclude_repo or []
+        size_weight = config.size_weight
+        count_weight = config.count_weight
 
-    query = """
-    query userInfo($login: String!) {
-      user(login: $login) {
-        repositories(ownerAffiliations: OWNER, isFork: false, first: 100) {
-          nodes {
-            name
-            languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
-              edges {
-                size
-                node {
-                  color
-                  name
+        query = """
+        query userInfo($login: String!) {
+          user(login: $login) {
+            repositories(ownerAffiliations: OWNER, isFork: false, first: 100) {
+              nodes {
+                name
+                languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+                  edges {
+                    size
+                    node {
+                      color
+                      name
+                    }
+                  }
                 }
               }
             }
           }
         }
-      }
-    }
-    """
+        """
 
-    try:
-        data = client.graphql_query(query, {"login": username})
-    except APIError as e:
-        raise LanguageFetchError(f"Failed to fetch data from GitHub API: {e}") from e
+        try:
+            data = client.graphql_query(query, {"login": username})
+        except APIError as e:
+            raise LanguageFetchError(f"Failed to fetch data from GitHub API: {e}") from e
 
-    if "errors" in data:
-        error_msg = data["errors"][0].get("message", "Unknown GraphQL error")
-        raise LanguageFetchError(f"GitHub API error: {error_msg}")
+        if "errors" in data:
+            error_msg = data["errors"][0].get("message", "Unknown GraphQL error")
+            raise LanguageFetchError(f"GitHub API error: {error_msg}")
 
-    if "data" not in data or not data["data"]:
-        raise LanguageFetchError("No data returned from GitHub API")
+        if "data" not in data or not data["data"]:
+            raise LanguageFetchError("No data returned from GitHub API")
 
-    # Get repository nodes
-    user_data = data["data"].get("user")
-    if not user_data:
-        raise LanguageFetchError(f"User '{username}' not found")
+        # Get repository nodes
+        user_data = data["data"].get("user")
+        if not user_data:
+            raise LanguageFetchError(f"User '{username}' not found")
 
-    repos = user_data.get("repositories", {}).get("nodes", [])
+        repos = user_data.get("repositories", {}).get("nodes", [])
 
-    # Filter out excluded repositories
-    repos = [r for r in repos if not is_repo_excluded(r.get("name", ""), exclude_repo)]
+        # Filter out excluded repositories
+        repos = [r for r in repos if not is_repo_excluded(r.get("name", ""), exclude_repo)]
 
-    # Aggregate languages across all repositories
-    languages: dict[str, Language] = {}
+        # Aggregate languages across all repositories
+        languages: dict[str, Language] = {}
 
-    for repo in repos:
-        lang_edges = repo.get("languages", {}).get("edges", [])
-        for edge in lang_edges:
-            node = edge.get("node", {})
-            lang_name = node.get("name")
-            if not lang_name:
-                continue
+        for repo in repos:
+            lang_edges = repo.get("languages", {}).get("edges", [])
+            for edge in lang_edges:
+                node = edge.get("node", {})
+                lang_name = node.get("name")
+                if not lang_name:
+                    continue
 
-            lang_color = node.get("color") or DEFAULT_LANG_COLOR
-            lang_size = edge.get("size", 0)
+                lang_color = node.get("color") or DEFAULT_LANG_COLOR
+                lang_size = edge.get("size", 0)
 
-            if lang_name in languages:
-                languages[lang_name].size += lang_size
-                languages[lang_name].count += 1
-            else:
-                languages[lang_name] = Language(
-                    name=lang_name,
-                    color=lang_color,
-                    size=lang_size,
-                    count=1,
-                )
+                if lang_name in languages:
+                    languages[lang_name].size += lang_size
+                    languages[lang_name].count += 1
+                else:
+                    languages[lang_name] = Language(
+                        name=lang_name,
+                        color=lang_color,
+                        size=lang_size,
+                        count=1,
+                    )
 
-    # Apply size and count weights for ranking
-    for lang in languages.values():
-        lang.size = int((lang.size**size_weight) * (lang.count**count_weight))
+        # Apply size and count weights for ranking
+        for lang in languages.values():
+            lang.size = int((lang.size**size_weight) * (lang.count**count_weight))
 
-    # Sort by size descending
-    sorted_langs = dict(sorted(languages.items(), key=lambda x: x[1].size, reverse=True))
+        # Sort by size descending
+        sorted_langs = dict(sorted(languages.items(), key=lambda x: x[1].size, reverse=True))
 
-    return sorted_langs
+        return sorted_langs
