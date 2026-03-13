@@ -8,7 +8,7 @@
 *   **Language:** Python 3.13+
 *   **Package Management:** `uv`
 *   **CLI Framework:** `click`
-*   **HTTP Client:** `requests`
+*   **HTTP Client:** `httpx`
 *   **Testing:** `pytest`
 
 **Architecture:**
@@ -75,9 +75,9 @@ The project uses `uv` for all lifecycle tasks.
 ## Architecture Decisions
 
 ### `GitHubClient` is the sole HTTP boundary (2026-02-22)
-- **Decision:** `GitHubClient` catches all `requests.exceptions.RequestException` and re-raises as `APIError`. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `requests`.
-- **Rationale:** Prevents the HTTP library from leaking into domain logic. Swapping `requests` for `httpx` in the future only touches `client.py`.
-- **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `requests.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
+- **Decision:** `GitHubClient` catches all `httpx.HTTPError` and re-raises as `APIError`. Fetchers (`fetcher.py`, `langs_fetcher.py`) do not import `httpx`.
+- **Rationale:** Prevents the HTTP library from leaking into domain logic.
+- **Gotcha:** Tests must mock `GitHubClient.graphql_query` (or `GitHubClient.rest_get`), not `httpx.Client.post`. Mocking at the wrong layer breaks the abstraction and couples tests to the HTTP library.
 
 ### Config class hierarchy (2026-02-22)
 - **Decision:** `CardStyleConfig(BaseConfig)` holds 11 shared visual fields (theme, colors, border, animations). All card render configs inherit from it. Fetch configs inherit directly from `BaseConfig`.
@@ -107,10 +107,10 @@ The project uses `uv` for all lifecycle tasks.
 ### [Code Quality Refactor] (2026-02-22)
 - Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
 - Extracted `CardStyleConfig` base class; unified fetcher APIs to accept config objects.
-- Moved HTTP error handling into `GitHubClient`; removed `import requests` from fetchers.
+- Moved HTTP error handling into `GitHubClient`; removed `import httpx` from fetchers.
 - Decomposed `fetch_contributor_stats()` into `_fetch_contribution_years()`, `_process_year_contributions()`, `_build_contributor_repos()`.
 - Renamed `FetchConfig` → `UserStatsFetchConfig` for naming consistency.
-- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `requests`.
+- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `httpx`.
 
 ### [Rework Ranking] (2026-02-20)
 - Updated `contrib` card ranking logic to be repository-centric.
