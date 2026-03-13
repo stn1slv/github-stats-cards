@@ -11,24 +11,11 @@ from src.github.fetcher import fetch_contributor_stats
 
 @pytest.fixture
 def mock_client():
-    with (
-        patch("src.github.fetcher.GitHubClient") as MockClient,
-        patch("src.github.fetcher.fetch_user_stats") as mock_fetch_stats,
-    ):
+    with patch("src.github.fetcher.GitHubClient") as MockClient:
         client_instance = MockClient.return_value
         client_instance.fetch_image.return_value = b"fake_image_data"
         client_instance.async_fetch_image = AsyncMock(return_value=b"fake_image_data")
         client_instance.async_graphql_query = AsyncMock()
-
-        mock_fetch_stats.return_value = {
-            "totalCommits": 1000,
-            "totalPRs": 100,
-            "totalIssues": 50,
-            "totalStars": 500,
-            "totalReviews": 20,
-            "followers": 10,
-            "contributedTo": 5,
-        }
 
         yield client_instance
 
