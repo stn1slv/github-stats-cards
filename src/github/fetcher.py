@@ -526,20 +526,21 @@ async def _async_build_contributor_repos(
     return await asyncio.gather(*tasks)
 
 
-async def _async_fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
+async def async_fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
     """Async implementation of fetch_contributor_stats."""
-    client = GitHubClient(config.token)
+    async with GitHubClient(config.token) as client:
+        years = await _async_fetch_contribution_years(client, config.username)
 
-    years = await _async_fetch_contribution_years(client, config.username)
+        raw_repos_map: dict[str, dict[str, Any]] = {}
+        lock = asyncio.Lock()
+        tasks = [
+            _async_process_year_contributions(client, config.username, year, raw_repos_map, lock) for year in years
+        ]
+        await asyncio.gather(*tasks)
 
-    raw_repos_map: dict[str, dict[str, Any]] = {}
-    lock = asyncio.Lock()
-    tasks = [_async_process_year_contributions(client, config.username, year, raw_repos_map, lock) for year in years]
-    await asyncio.gather(*tasks)
+        repos = await _async_build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
 
-    repos = await _async_build_contributor_repos(client, raw_repos_map, config.exclude_repo, config.limit)
-
-    return {"repos": repos}
+        return {"repos": repos}
 
 
 def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
@@ -554,5 +555,17 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
 
     Raises:
         FetchError: If API request fails
+        RuntimeError: If called from within an existing event loop.
     """
-    return asyncio.run(_async_fetch_contributor_stats(config))
+    try:
+        asyncio.get_running_loop()
+        has_loop = True
+    except RuntimeError:
+        has_loop = False
+
+    if has_loop:
+        raise RuntimeError(
+            "An asyncio event loop is already running. Please use `async_fetch_contributor_stats` instead."
+        )
+
+    return asyncio.run(async_fetch_contributor_stats(config))

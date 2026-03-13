@@ -16,6 +16,7 @@ def mock_client():
         client_instance.fetch_image.return_value = b"fake_image_data"
         client_instance.async_fetch_image = AsyncMock(return_value=b"fake_image_data")
         client_instance.async_graphql_query = AsyncMock()
+        client_instance.__aenter__.return_value = client_instance
 
         yield client_instance
 
