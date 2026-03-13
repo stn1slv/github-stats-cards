@@ -112,6 +112,7 @@ def test_fetch_user_stats_pagination(mock_client):
         }
     }
     mock_client.graphql_query.side_effect = [resp1, resp2]
+    mock_client.rest_get.return_value = {"total_count": 0}
 
     config = UserStatsFetchConfig(username="user", token="fake-token")
     stats = fetch_user_stats(config)
@@ -150,6 +151,7 @@ def test_fetch_user_stats_with_discussions(mock_client):
         }
     }
     mock_client.graphql_query.side_effect = [mock_response, disc_response]
+    mock_client.rest_get.return_value = {"total_count": 0}
 
     config = UserStatsFetchConfig(
         username="user", token="fake-token", show=["discussions_started", "discussions_answered"]

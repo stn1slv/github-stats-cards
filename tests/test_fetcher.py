@@ -348,3 +348,11 @@ def test_fetch_contributor_stats_rank_calculation(mock_client):
     # Check Repo A
     a_repo = next(r for r in stats["repos"] if r["name"] == "owner/repo-a")
     assert a_repo["rank_level"] == "A-"  # 1001 Stars, 50 commits
+
+
+@pytest.mark.anyio
+async def test_fetch_contributor_stats_inside_event_loop():
+    """Test that fetch_contributor_stats raises FetchError when called inside a running loop."""
+    config = ContribFetchConfig(username="user", token="token")
+    with pytest.raises(FetchError, match="event loop is already running"):
+        fetch_contributor_stats(config)
