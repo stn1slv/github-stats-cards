@@ -415,7 +415,10 @@ async def _async_process_year_contributions(
     to_date = f"{year}-12-31T23:59:59Z"
 
     try:
-        c_data = await client.async_graphql_query(_CONTRIB_QUERY, {"login": username, "from": from_date, "to": to_date})
+        c_data = await client.async_graphql_query(
+            _CONTRIB_QUERY,
+            {"login": username, "from": from_date, "to": to_date},
+        )
 
         if "errors" in c_data:
             return
@@ -554,8 +557,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         Contributor statistics
 
     Raises:
-        FetchError: If API request fails
-        RuntimeError: If called from within an existing event loop.
+        FetchError: If API request fails or if called from within an existing event loop.
     """
     try:
         asyncio.get_running_loop()
@@ -564,7 +566,7 @@ def fetch_contributor_stats(config: ContribFetchConfig) -> ContributorStats:
         has_loop = False
 
     if has_loop:
-        raise RuntimeError(
+        raise FetchError(
             "An asyncio event loop is already running. Please use `async_fetch_contributor_stats` instead."
         )
 
