@@ -13,7 +13,7 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
 - **US-007:** As a user, I want to customize the number of repositories displayed on the contributor card.
 - **US-008:** As a user, I want to apply existing themes to the contributor card for consistency.
 - **US-009:** As a user, I want clear feedback if I have no contributions or if I provide invalid limits.
-- **US-010:** [Source: 002-rework-ranking] As a user, I want the contributor card to rank repositories based on their popularity and magnitude, so that contributing to massive projects (like Debezium) is recognized with a high rank regardless of my commit count.
+- **US-010:** As a user, I want the contributor card to rank repositories based on their popularity and magnitude, so that contributing to massive projects (like Debezium) is recognized with a high rank regardless of my commit count.
 
 ## Functional Requirements
 
