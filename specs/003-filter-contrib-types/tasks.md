@@ -44,8 +44,8 @@
 **Goal**: Allow configuration of contribution types via GitHub Actions inputs.
 
 ### Implementation
-- [x] T009 [US2] Add `contrib_types` input parameter to `action.yml`, mapped to the CLI `--types` flag
-- [x] T010 [US2] Document the new `contrib_types` parameter in the `README.md` usage examples
+- [x] T009 [US2] Add `contrib-types` input parameter to `action.yml`, mapped to the CLI `--types` flag
+- [x] T010 [US2] Document the new `contrib-types` parameter in the `README.md` usage examples
 
 **Checkpoint**: GitHub Actions workflows can utilize the new filtering logic.
 
