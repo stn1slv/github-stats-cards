@@ -9,7 +9,7 @@ The configuration object representing data fetching parameters for the Contribut
 - `contribution_types`: `list[str]`
   - **Description**: List of contribution types to include.
   - **Validation**: Must only contain items from `{"commits", "prs", "issues", "reviews"}`.
-  - **Default**: `["commits"]`
+  - **Default**: `["commits", "prs"]`
 
 ## Constants (Update)
 

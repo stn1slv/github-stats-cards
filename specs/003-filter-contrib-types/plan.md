@@ -15,7 +15,7 @@ Add an optional configuration parameter to the Contributor Card to specify exact
 **Linting/Formatting**: `ruff` (Lint+Format), `mypy` (Strict Typing)
 **Project Structure**: `src/` layout with `tests/`
 **Performance Goals**: Decrease or maintain local generation time (fetching fewer types may slightly improve GraphQL response times).
-**Constraints**: Ensure safe default (default includes only `commits`). Secure token handling remains unchanged.
+**Constraints**: Ensure safe default (default includes `commits` and `prs`). Secure token handling remains unchanged.
 
 ## Constitution Check
 
@@ -69,5 +69,5 @@ action.yml               # Add `contrib_types` input
 | None | N/A | N/A |
 
 ### Revision: Implementation Sync 2026-03-22
-- Reason: The default value for the `--types` configuration was updated to `commits` to prevent fetching of noisy non-code repositories (like issue-only contributions) by default.
+- Reason: The default value for the `--types` configuration was updated to `commits,prs` to prevent fetching of noisy non-code repositories (like issue-only contributions) by default.
 - Reason: Added logic to filter Pull Request contributions by state (OPEN/MERGED).

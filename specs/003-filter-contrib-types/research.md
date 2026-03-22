@@ -11,8 +11,8 @@ The feature requires filtering the specific contribution types (commits, pull re
 - **Alternatives considered:** Multiple flag declarations (e.g., `--type commits --type prs`), but comma-separated is cleaner for GitHub actions configuration.
 
 ### 2. Default Values
-- **Decision:** If the `--types` parameter is omitted, default to only `commits`: `["commits"]`.
-- **Rationale:** Focuses on the most common indicator of code contribution by default. Users who want the broad net can explicitly specify `commits,prs,issues,reviews`.
+- **Decision:** If the `--types` parameter is omitted, default to `commits` and `prs`: `["commits", "prs"]`.
+- **Rationale:** Focuses on the most common indicator of code contribution (commits and merged/open PRs) by default. Users who want the broad net can explicitly specify `commits,prs,issues,reviews`.
 - **Alternatives considered:** Defaulting to all four types. Rejected because it often includes "noisy" repositories where a user only opened a single issue.
 
 ### 3. Modifying GraphQL Query

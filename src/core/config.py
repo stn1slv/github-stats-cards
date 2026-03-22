@@ -155,4 +155,4 @@ class ContribFetchConfig(BaseConfig):
     token: str
     limit: int = 10
     exclude_repo: list[str] = field(default_factory=list)
-    contribution_types: list[str] = field(default_factory=lambda: ["commits"])
+    contribution_types: list[str] = field(default_factory=lambda: ["commits", "prs"])

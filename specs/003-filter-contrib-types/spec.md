@@ -40,7 +40,7 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 ### CLI Interface Design
 - **Command**: `github-stats-card contrib`
 - **New Flags/Options**:
-  - `--types`: Comma-separated list of contribution types to include. Allowed values: `commits`, `prs`, `issues`, `reviews`. (Default: `commits`)
+  - `--types`: Comma-separated list of contribution types to include. Allowed values: `commits`, `prs`, `issues`, `reviews`. (Default: `commits,prs`)
 
 ### Configuration Changes
 - **Dataclass**: `ContribFetchConfig`
@@ -49,7 +49,7 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 
 ### Functional Requirements
 - **FR-001**: System MUST parse the comma-separated `--types` flag into a list, validating against the allowed values (`commits`, `prs`, `issues`, `reviews`).
-- **FR-002**: System MUST default to including only `commits` if the flag is omitted, prioritizing core code contributions.
+- **FR-002**: System MUST default to including `commits` and `prs` if the flag is omitted, prioritizing core code contributions.
 - **FR-003**: System MUST update the data fetching process to only request data for the specified contribution types, ignoring the others.
 - **FR-004**: System MUST expose a new `contrib_types` input parameter in the automation definition (`action.yml`).
 - **FR-005**: When `prs` are selected, the system MUST only count Pull Requests that are in `OPEN` or `MERGED` state, excluding `CLOSED` (unmerged) pull requests.
@@ -68,10 +68,10 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 ### Measurable Outcomes
 - **SC-001**: Users can successfully limit fetched repositories to those matching specific contribution types without the visual layout breaking.
 - **SC-002**: The automation workflow successfully accepts the new configuration parameter and passes it to the generation process.
-- **SC-003**: Omitting the new configuration falls back to the default behavior (fetching only `commits`).
+- **SC-003**: Omitting the new configuration falls back to the default behavior (fetching `commits` and `prs`).
 - **SC-004**: Providing an invalid type results in a clear validation error before any data fetching begins.
 - **SC-005**: Generated contributor cards for `prs` exclude counts for closed, unmerged pull requests.
 
 ### Revision: Implementation Sync 2026-03-22
-- Reason: The default value for `--types` flag was changed from including all four types to only `commits` to prioritize core code contributions and reduce noise.
+- Reason: The default value for `--types` flag was changed from including all four types to `commits,prs` to prioritize core code contributions and reduce noise.
 - Reason: Added requirement to filter PR contributions by state (only OPEN/MERGED counted).

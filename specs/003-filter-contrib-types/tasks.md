@@ -62,13 +62,13 @@
 
 ## Remediation: Gaps
 
-- [x] T015 [P] Update `action.yml` input description to reflect that the default value is 'commits' in `action.yml` [Sync: Gap Report]
+- [x] T015 [P] Update `action.yml` input description to reflect that the default value is 'commits,prs' in `action.yml` [Sync: Gap Report]
 - [x] T016 [P] Update `_build_contrib_query` to fetch PR nodes and states in `src/github/fetcher.py` [Sync: Gap Report]
 - [x] T017 Update `_async_process_year_contributions` parsing logic to filter PRs by OPEN/MERGED state in `src/github/fetcher.py` [Sync: Gap Report]
 - [x] T018 [P] Add test case for PR state filtering in `tests/test_fetcher.py` [Sync: Gap Report]
 
 ### Revision: Implementation Sync 2026-03-22
-- Reason: Reconciled documentation and code to ensure the default value for the `--types` flag is strictly 'commits' instead of all four contribution types.
+- Reason: Reconciled documentation and code to ensure the default value for the `--types` flag is strictly 'commits,prs' instead of all four contribution types.
 - Reason: Implementation now filters Pull Request contributions to only include OPEN and MERGED states.
 
 ---

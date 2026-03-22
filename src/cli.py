@@ -655,7 +655,7 @@ def top_langs(
     "--types",
     "--contrib-types",
     "contribution_types",
-    default="commits",
+    default="commits,prs",
     help="Comma-separated list of contribution types to fetch (commits,prs,issues,reviews)",
 )
 def contrib(
