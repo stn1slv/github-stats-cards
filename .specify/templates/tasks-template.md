@@ -52,7 +52,7 @@ description: "Task list template for feature implementation"
 **Purpose**: Ensure strict adherence to constitution
 
 - [ ] TXXX Run `uv run ruff check src tests` and fix violations
-- [ ] TXXX Run `uv run black src tests`
+- [ ] TXXX Run `uv run ruff format src tests`
 - [ ] TXXX Run `uv run mypy src` and fix typing errors
 - [ ] TXXX Add documentation to `README.md`
 - [ ] TXXX Verify accessibility of generated SVGs
