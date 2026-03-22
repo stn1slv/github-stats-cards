@@ -67,3 +67,6 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 - **SC-002**: The automation workflow successfully accepts the new configuration parameter and passes it to the generation process.
 - **SC-003**: Omitting the new configuration falls back to the default behavior (fetching only `commits`).
 - **SC-004**: Providing an invalid type results in a clear validation error before any data fetching begins.
+
+### Revision: Implementation Sync 2026-03-22
+- Reason: The default value for `--types` flag was changed from including all four types to only `commits` to prioritize core code contributions and reduce noise.

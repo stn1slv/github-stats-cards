@@ -60,6 +60,13 @@
 - [x] T013 Run `uv run mypy src` and fix any type checking errors
 - [x] T014 Run all tests with `uv run pytest` to ensure no regressions were introduced
 
+## Remediation: Gaps
+
+- [x] T015 [P] Update `action.yml` input description to reflect that the default value is 'commits' in `action.yml` [Sync: Gap Report]
+
+### Revision: Implementation Sync 2026-03-22
+- Reason: Reconciled documentation and code to ensure the default value for the `--types` flag is strictly 'commits' instead of all four contribution types.
+
 ---
 
 ## Implementation Strategy

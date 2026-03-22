@@ -64,3 +64,6 @@ action.yml               # Add `contrib_types` input
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | None | N/A | N/A |
+
+### Revision: Implementation Sync 2026-03-22
+- Reason: The default value for the `--types` configuration was updated to `commits` to prevent fetching of noisy non-code repositories (like issue-only contributions) by default.
