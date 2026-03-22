@@ -92,3 +92,42 @@ def test_contrib_command():
 
         assert result.exit_code == 0
         assert "Generated" in result.stderr
+
+
+def test_contrib_command_with_valid_types():
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_contributor_stats") as mock_fetch,
+        patch("src.cli.render_contrib_card") as mock_render,
+    ):
+        mock_fetch.return_value = {"repos": [{"name": "owner/repo", "stars": 100, "avatar_b64": "base64"}]}
+        mock_render.return_value = "<svg>contrib</svg>"
+
+        result = runner.invoke(
+            cli, ["contrib", "-u", "user", "-t", "token", "-o", "contrib.svg", "--types", "commits,prs"]
+        )
+
+        assert result.exit_code == 0
+        assert "Generated" in result.stderr
+
+        # Verify fetch config was created with correctly parsed types
+        fetch_config = mock_fetch.call_args[0][0]
+        assert fetch_config.contribution_types == ["commits", "prs"]
+
+
+def test_contrib_command_with_invalid_types():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["contrib", "-u", "user", "-t", "token", "-o", "contrib.svg", "--types", "commits,invalid"]
+    )
+
+    assert result.exit_code != 0
+    assert "Invalid contribution type 'invalid'" in result.stderr
+
+
+def test_contrib_command_with_empty_types():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["contrib", "-u", "user", "-t", "token", "-o", "contrib.svg", "--types", ""])
+
+    assert result.exit_code != 0
+    assert "At least one contribution type is required" in result.stderr

@@ -651,6 +651,13 @@ def top_langs(
     is_flag=True,
     help="Disable CSS animations",
 )
+@click.option(
+    "--types",
+    "--contrib-types",
+    "contribution_types",
+    default="commits,prs",
+    help="Comma-separated list of contribution types to fetch (commits,prs,issues,reviews)",
+)
 def contrib(
     username: str,
     token: str,
@@ -668,6 +675,7 @@ def contrib(
     custom_title: str | None,
     border_radius: float,
     disable_animations: bool,
+    contribution_types: str,
 ) -> None:
     """
     Generate Top Contributions Card SVG.
@@ -688,13 +696,28 @@ def contrib(
       github-stats-card contrib -u octocat -o contrib.svg \\
         --exclude-repo "facebook/react,microsoft/vscode"
     """
+    from src.core.constants import VALID_CONTRIB_TYPES
+
+    # Validate contribution types (outside try so Click handles BadParameter natively)
+    parsed_types = [t.strip() for t in contribution_types.split(",") if t.strip()]
+    if not parsed_types:
+        raise click.BadParameter(
+            f"At least one contribution type is required. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
+        )
+    for c_type in parsed_types:
+        if c_type not in VALID_CONTRIB_TYPES:
+            raise click.BadParameter(
+                f"Invalid contribution type '{c_type}'. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
+            )
+
     try:
-        # Create fetch configuration
+        # Create fetch configuration (pass parsed list to avoid double-parsing)
         fetch_config = ContribFetchConfig.from_cli_args(
             username=username,
             token=token,
             limit=limit,
             exclude_repo=exclude_repo,
+            contribution_types=parsed_types,
         )
 
         # Fetch stats from GitHub

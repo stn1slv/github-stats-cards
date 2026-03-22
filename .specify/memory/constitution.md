@@ -19,7 +19,7 @@ The primary interface is the Command Line. Tools must be robust, scriptable (CI/
 No external service dependencies for rendering are allowed. All stats generation and SVG rendering must happen locally within the Python environment. This ensures user privacy, speed, and reliability without reliance on third-party uptime.
 
 ### III. Modern Python Standards
-We strictly adhere to the modern Python ecosystem. `uv` is the mandatory package manager. Code must be typed (`mypy` strict), linted (`ruff`), formatted (`black`), and target Python 3.13+. We strictly use modern type hinting (PEP 604, e.g., `int | None`).
+We strictly adhere to the modern Python ecosystem. `uv` is the mandatory package manager. Code must be typed (`mypy` strict), linted (`ruff`), formatted (`ruff format`), and target Python 3.13+. We strictly use modern type hinting (PEP 604, e.g., `int | None`).
 
 ### IV. Visual Flexibility & Accessibility
 The tool produces visual artifacts (SVGs). These must be accessible (valid markup), themeable (support for light/dark modes and user-defined colors), and internationalized (i18n support). Visual regression testing is encouraged to ensure consistency.

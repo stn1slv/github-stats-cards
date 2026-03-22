@@ -103,21 +103,23 @@ The project uses `uv` for all lifecycle tasks.
 - **Rationale:** Distinguishes between contributions to massive, established projects vs. small/new projects, even if star counts are similar.
 - **Gotcha:** Fetch total commits via the `object(expression: "HEAD") { history { totalCount } }` fragment in GraphQL. Ensure this is fetched for all contribution types (Commits, PRs, Issues, Reviews) to avoid missing magnitude data when a user hasn't made direct commits.
 
+### Contribution Filtering (2026-03-22)
+- **Decision:** Allow users to filter contributor card content by type (`commits`, `prs`, `issues`, `reviews`) via `--types` flag. Default to `commits,prs`.
+- **Rationale:** Reduces noise from non-code contributions (e.g., single issue opened) while highlighting primary impact areas.
+- **Gotcha:** Validation is enforced in `ContribFetchConfig.__post_init__` to ensure the list is non-empty and valid before API calls.
+
+### PR State Filtering (2026-03-22)
+- **Decision:** For PR contributions, fetch individual nodes and count only those in `OPEN` or `MERGED` states.
+- **Rationale:** Excludes unmerged closed PRs from contribution counts to provide a more accurate representation of actual repository impact.
+- **Gotcha:** Requires fetching `nodes` instead of using `totalCount` for the `pullRequestContributionsByRepository` GraphQL field, which impacts query structure.
+
 ## Recent Changes
+- [Contribution Filtering] (2026-03-22): Added `--types` flag to `contrib` card; default to `commits,prs`; implemented PR state filtering (OPEN/MERGED).
+- 003-filter-contrib-types: Added Python 3.13+ (Managed by `uv`) + Click (CLI), httpx (API), Built-in XML/SVG libraries
 ### [Code Quality Refactor] (2026-02-22)
 - Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
 - Extracted `CardStyleConfig` base class; unified fetcher APIs to accept config objects.
-- Moved HTTP error handling into `GitHubClient`; removed `import httpx` from fetchers.
-- Decomposed `fetch_contributor_stats()` into `_fetch_contribution_years()`, `_process_year_contributions()`, `_build_contributor_repos()`.
-- Renamed `FetchConfig` → `UserStatsFetchConfig` for naming consistency.
-- Test cleanup: parametrized assertion-heavy tests; mocks now target `GitHubClient`, not `httpx`.
 
 ### [Rework Ranking] (2026-02-20)
-- Updated `contrib` card ranking logic to be repository-centric.
-- Rank is now based on **Stars** (Base) + **Repo Total Commits** (Modifier).
-- Renamed internal ranking function to `calculate_user_rank` for clarity.
 
 ### [Contributor Card] (2026-02-08)
-- Added `contrib` subcommand to display top external contributions. [Source: 001-contributor-card]
-- Features: Star-based sorting, repository exclusion (wildcards), embedded Base64 avatars.
-- New commands: `uv run github-stats-card contrib`

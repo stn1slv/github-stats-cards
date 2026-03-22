@@ -6,7 +6,7 @@ import pytest
 
 from src.core.config import ContribFetchConfig
 from src.core.exceptions import FetchError
-from src.github.fetcher import fetch_contributor_stats
+from src.github.fetcher import _build_contrib_query, fetch_contributor_stats
 
 
 @pytest.fixture
@@ -274,7 +274,10 @@ def test_fetch_contributor_stats_deduplication(mock_client):
                 "contributionsCollection": {
                     "commitContributionsByRepository": [{"repository": repo_node, "contributions": {"totalCount": 1}}],
                     "pullRequestContributionsByRepository": [
-                        {"repository": repo_node, "contributions": {"totalCount": 1}}
+                        {
+                            "repository": repo_node,
+                            "contributions": {"nodes": [{"pullRequest": {"state": "MERGED"}}]},
+                        }
                     ],
                     "issueContributionsByRepository": [],
                     "pullRequestReviewContributionsByRepository": [],
@@ -282,10 +285,9 @@ def test_fetch_contributor_stats_deduplication(mock_client):
             }
         }
     }
-
     mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
-    config = ContribFetchConfig(username="user", token="token", limit=5)
+    config = ContribFetchConfig(username="user", token="token", limit=5, contribution_types=["commits", "prs"])
     stats = fetch_contributor_stats(config)
 
     assert len(stats["repos"]) == 1
@@ -356,3 +358,74 @@ async def test_fetch_contributor_stats_inside_event_loop():
     config = ContribFetchConfig(username="user", token="token")
     with pytest.raises(FetchError, match="event loop is already running"):
         fetch_contributor_stats(config)
+
+
+def test_build_contrib_query():
+    # Test with all types
+    query_all = _build_contrib_query(["commits", "prs", "issues", "reviews"])
+    assert "commitContributionsByRepository" in query_all
+    assert "pullRequestContributionsByRepository" in query_all
+    assert "issueContributionsByRepository" in query_all
+    assert "pullRequestReviewContributionsByRepository" in query_all
+
+    # Test with partial types
+    query_partial = _build_contrib_query(["commits", "prs"])
+    assert "commitContributionsByRepository" in query_partial
+    assert "pullRequestContributionsByRepository" in query_partial
+    assert "issueContributionsByRepository" not in query_partial
+    assert "pullRequestReviewContributionsByRepository" not in query_partial
+
+
+def test_build_contrib_query_empty_raises():
+    """Test that _build_contrib_query raises ValueError on empty list."""
+    with pytest.raises(ValueError, match="must not be empty"):
+        _build_contrib_query([])
+
+
+def test_fetch_contributor_stats_pr_filtering(mock_client):
+    """Test that PR contributions are filtered by state (OPEN/MERGED)."""
+    # 1. Years response
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024]}}}}
+
+    # 2. Contributions response with PRs in different states
+    repo_node = {
+        "nameWithOwner": "owner/repo",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 100},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+        "object": {"history": {"totalCount": 100}},
+    }
+
+    contribs_response = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [],
+                    "pullRequestContributionsByRepository": [
+                        {
+                            "repository": repo_node,
+                            "contributions": {
+                                "nodes": [
+                                    {"pullRequest": {"state": "OPEN"}},
+                                    {"pullRequest": {"state": "MERGED"}},
+                                    {"pullRequest": {"state": "CLOSED"}},  # Should be ignored
+                                ]
+                            },
+                        }
+                    ],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
+
+    config = ContribFetchConfig(username="user", token="token", limit=5, contribution_types=["prs"])
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 1
+    assert stats["repos"][0]["name"] == "owner/repo"
+    # Should count 2 (OPEN + MERGED)
+    assert stats["repos"][0]["prs"] == 2

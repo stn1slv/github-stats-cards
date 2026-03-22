@@ -29,7 +29,7 @@ class BaseConfig:
         filtered = {k: v for k, v in kwargs.items() if k in valid_fields and v is not None}
 
         # Handle known list fields
-        for list_key in ["hide", "show", "exclude_repo"]:
+        for list_key in ["hide", "show", "exclude_repo", "contribution_types"]:
             if list_key in filtered:
                 filtered[list_key] = parse_list_arg(filtered[list_key])
 
@@ -155,3 +155,17 @@ class ContribFetchConfig(BaseConfig):
     token: str
     limit: int = 10
     exclude_repo: list[str] = field(default_factory=list)
+    contribution_types: list[str] = field(default_factory=lambda: ["commits", "prs"])
+
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        from .constants import VALID_CONTRIB_TYPES
+
+        if not self.contribution_types:
+            raise ValueError("contribution_types cannot be empty")
+
+        for c_type in self.contribution_types:
+            if c_type not in VALID_CONTRIB_TYPES:
+                raise ValueError(
+                    f"Invalid contribution type '{c_type}'. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
+                )
