@@ -318,8 +318,8 @@ query userYears($login: String!) {
 }
 """
 
-# Single GraphQL fragment shared by all four contribution types.
-_REPO_FRAGMENT = """
+# Shared fragment for repository details.
+_REPO_DETAILS_FRAGMENT = """
   repository {
     nameWithOwner
     isPrivate
@@ -338,9 +338,6 @@ _REPO_FRAGMENT = """
       }
     }
   }
-  contributions {
-    totalCount
-  }
 """
 
 
@@ -351,22 +348,33 @@ def _build_contrib_query(contribution_types: list[str]) -> str:
     if "commits" in contribution_types:
         fragments.append(f"""
       commitContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
+        {_REPO_DETAILS_FRAGMENT}
+        contributions {{ totalCount }}
       }}""")
     if "prs" in contribution_types:
+        # For PRs, we need nodes to check their state (OPEN/MERGED)
         fragments.append(f"""
       pullRequestContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
+        {_REPO_DETAILS_FRAGMENT}
+        contributions(first: 100) {{
+          nodes {{
+            pullRequest {{
+              state
+            }}
+          }}
+        }}
       }}""")
     if "issues" in contribution_types:
         fragments.append(f"""
       issueContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
+        {_REPO_DETAILS_FRAGMENT}
+        contributions {{ totalCount }}
       }}""")
     if "reviews" in contribution_types:
         fragments.append(f"""
       pullRequestReviewContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
+        {_REPO_DETAILS_FRAGMENT}
+        contributions {{ totalCount }}
       }}""")
 
     joined_fragments = "\n".join(fragments)
@@ -464,7 +472,13 @@ async def _async_process_year_contributions(
         for gh_key, stats_key in active_contrib_types:
             for item in collection.get(gh_key, []):
                 repo = item["repository"]
-                count = item["contributions"]["totalCount"]
+
+                if gh_key == "pullRequestContributionsByRepository":
+                    # Filter PRs by state: only OPEN and MERGED are considered contributions
+                    nodes = item.get("contributions", {}).get("nodes", [])
+                    count = sum(1 for node in nodes if node.get("pullRequest", {}).get("state") in ["OPEN", "MERGED"])
+                else:
+                    count = item["contributions"]["totalCount"]
 
                 if count == 0 or repo["isPrivate"]:
                     continue

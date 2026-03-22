@@ -48,9 +48,12 @@ src/
 │   ├── config.py        # Update ContribFetchConfig
 │   └── utils.py         # Update arg parsing if necessary
 ├── github/              
-│   └── fetcher.py       # Update GraphQL query construction in _async_process_year_contributions
+│   └── fetcher.py       # Update GraphQL query construction and PR state filtering
 └── cli.py               # Add Click option for --types/--contrib-types
+```
 
+### Technical Detail: PR State Filtering
+The system will dynamically adjust the GraphQL query for `prs` to fetch pull request nodes and their states. The parsing logic will then iterate through these nodes to count only `OPEN` and `MERGED` pull requests, ensuring that unmerged closed PRs do not contribute to the repository count.
 tests/
 ├── test_cli.py          # Add tests for new flag parsing
 ├── test_fetcher.py      # Mocked API tests for conditional queries
@@ -67,3 +70,4 @@ action.yml               # Add `contrib_types` input
 
 ### Revision: Implementation Sync 2026-03-22
 - Reason: The default value for the `--types` configuration was updated to `commits` to prevent fetching of noisy non-code repositories (like issue-only contributions) by default.
+- Reason: Added logic to filter Pull Request contributions by state (OPEN/MERGED).

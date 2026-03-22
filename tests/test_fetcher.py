@@ -274,7 +274,10 @@ def test_fetch_contributor_stats_deduplication(mock_client):
                 "contributionsCollection": {
                     "commitContributionsByRepository": [{"repository": repo_node, "contributions": {"totalCount": 1}}],
                     "pullRequestContributionsByRepository": [
-                        {"repository": repo_node, "contributions": {"totalCount": 1}}
+                        {
+                            "repository": repo_node,
+                            "contributions": {"nodes": [{"pullRequest": {"state": "MERGED"}}]},
+                        }
                     ],
                     "issueContributionsByRepository": [],
                     "pullRequestReviewContributionsByRepository": [],
@@ -282,7 +285,6 @@ def test_fetch_contributor_stats_deduplication(mock_client):
             }
         }
     }
-
     mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
     config = ContribFetchConfig(username="user", token="token", limit=5, contribution_types=["commits", "prs"])
@@ -372,3 +374,52 @@ def test_build_contrib_query():
     assert "pullRequestContributionsByRepository" in query_partial
     assert "issueContributionsByRepository" not in query_partial
     assert "pullRequestReviewContributionsByRepository" not in query_partial
+
+
+def test_fetch_contributor_stats_pr_filtering(mock_client):
+    """Test that PR contributions are filtered by state (OPEN/MERGED)."""
+    # 1. Years response
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024]}}}}
+
+    # 2. Contributions response with PRs in different states
+    repo_node = {
+        "nameWithOwner": "owner/repo",
+        "isPrivate": False,
+        "stargazers": {"totalCount": 100},
+        "owner": {"avatarUrl": "url", "login": "owner"},
+        "object": {"history": {"totalCount": 100}},
+    }
+
+    contribs_response = {
+        "data": {
+            "user": {
+                "contributionsCollection": {
+                    "commitContributionsByRepository": [],
+                    "pullRequestContributionsByRepository": [
+                        {
+                            "repository": repo_node,
+                            "contributions": {
+                                "nodes": [
+                                    {"pullRequest": {"state": "OPEN"}},
+                                    {"pullRequest": {"state": "MERGED"}},
+                                    {"pullRequest": {"state": "CLOSED"}},  # Should be ignored
+                                ]
+                            },
+                        }
+                    ],
+                    "issueContributionsByRepository": [],
+                    "pullRequestReviewContributionsByRepository": [],
+                }
+            }
+        }
+    }
+
+    mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
+
+    config = ContribFetchConfig(username="user", token="token", limit=5, contribution_types=["prs"])
+    stats = fetch_contributor_stats(config)
+
+    assert len(stats["repos"]) == 1
+    assert stats["repos"][0]["name"] == "owner/repo"
+    # Should count 2 (OPEN + MERGED)
+    assert stats["repos"][0]["prs"] == 2

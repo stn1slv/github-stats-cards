@@ -52,12 +52,15 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 - **FR-002**: System MUST default to including only `commits` if the flag is omitted, prioritizing core code contributions.
 - **FR-003**: System MUST update the data fetching process to only request data for the specified contribution types, ignoring the others.
 - **FR-004**: System MUST expose a new `contrib_types` input parameter in the automation definition (`action.yml`).
+- **FR-005**: When `prs` are selected, the system MUST only count Pull Requests that are in `OPEN` or `MERGED` state, excluding `CLOSED` (unmerged) pull requests.
 
 ### Visual/Output Requirements
 - **VR-001**: The rendered image MUST NOT change its visual layout; only the underlying data populating the repositories will change based on the filter.
 
 ### Assumptions & Dependencies
-- **Assumptions**: The available contribution types from the provider API remain consistent (`commits`, `prs`, `issues`, `reviews`).
+- **Assumptions**: 
+  - The available contribution types from the provider API remain consistent (`commits`, `prs`, `issues`, `reviews`).
+  - Filtering PRs by state is performed by fetching up to 100 pull requests per repository per year and counting those matching the required states.
 - **Dependencies**: The automation workflow (`action.yml`) maps directly to the CLI options.
 
 ## Success Criteria *(mandatory)*
@@ -67,6 +70,8 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 - **SC-002**: The automation workflow successfully accepts the new configuration parameter and passes it to the generation process.
 - **SC-003**: Omitting the new configuration falls back to the default behavior (fetching only `commits`).
 - **SC-004**: Providing an invalid type results in a clear validation error before any data fetching begins.
+- **SC-005**: Generated contributor cards for `prs` exclude counts for closed, unmerged pull requests.
 
 ### Revision: Implementation Sync 2026-03-22
 - Reason: The default value for `--types` flag was changed from including all four types to only `commits` to prioritize core code contributions and reduce noise.
+- Reason: Added requirement to filter PR contributions by state (only OPEN/MERGED counted).
