@@ -97,9 +97,9 @@ inputs:
     default: ''
   
   contrib-types:
-    description: 'Comma-separated list of contribution types to fetch (commits,prs,issues,reviews) - contrib only. Default: commits,prs'
+    description: 'Comma-separated list of contribution types to fetch (commits,prs,issues,reviews) - contrib only'
     required: false
-    default: ''
+    default: 'commits,prs'
   
   # Color customization
   title-color:

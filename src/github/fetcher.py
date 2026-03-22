@@ -343,8 +343,17 @@ _REPO_DETAILS_FRAGMENT = """
 
 def _build_contrib_query(contribution_types: list[str]) -> str:
     """Build the GraphQL query dynamically based on requested contribution types."""
+    from src.core.constants import VALID_CONTRIB_TYPES
+
     if not contribution_types:
         msg = "contribution_types must not be empty"
+        raise ValueError(msg)
+
+    invalid = [t for t in contribution_types if t not in VALID_CONTRIB_TYPES]
+    if invalid:
+        msg = (
+            f"Unrecognized contribution types: {', '.join(invalid)}. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
+        )
         raise ValueError(msg)
 
     fragments = []
