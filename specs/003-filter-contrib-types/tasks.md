@@ -69,8 +69,8 @@
 
 ## Remediation: Drift
 
-- [ ] T019 [P] Add guard to `_build_contrib_query` to prevent invalid empty selection sets in `src/github/fetcher.py` [Sync: Gap Report]
-- [ ] T020 [P] Add warning or documentation note regarding 100-node limit for PR state filtering in `src/github/fetcher.py` [Sync: Gap Report]
+- [x] T019 [P] Add guard to `_build_contrib_query` to prevent invalid empty selection sets in `src/github/fetcher.py` [Sync: Gap Report]
+- [x] T020 [P] Add warning or documentation note regarding 100-node limit for PR state filtering in `src/github/fetcher.py` [Sync: Gap Report]
 
 ### Revision: Implementation Sync 2026-03-22
 - Reason: Reconciled documentation and code to ensure the default value for the `--types` flag is strictly 'commits,prs' instead of all four contribution types.

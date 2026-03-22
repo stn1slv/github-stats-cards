@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 from urllib.parse import quote
 
 from ..core.config import ContribFetchConfig, UserStatsFetchConfig
-from ..core.constants import API_BASE_URL
+from ..core.constants import API_BASE_URL, VALID_CONTRIB_TYPES
 from ..core.exceptions import APIError, FetchError
 from ..core.utils import is_repo_excluded
 from .client import GitHubClient
@@ -343,8 +343,6 @@ _REPO_DETAILS_FRAGMENT = """
 
 def _build_contrib_query(contribution_types: list[str]) -> str:
     """Build the GraphQL query dynamically based on requested contribution types."""
-    from src.core.constants import VALID_CONTRIB_TYPES
-
     if not contribution_types:
         msg = "contribution_types must not be empty"
         raise ValueError(msg)
