@@ -25,7 +25,7 @@ By default, if the flag is omitted, `commits` and `prs` are included.
 
 ## GitHub Actions
 
-You can configure the filtering in your GitHub Actions workflow by adding the `contrib_types` parameter to the `with` block:
+You can configure the filtering in your GitHub Actions workflow by adding the `contrib-types` parameter to the `with` block:
 
 ```yaml
 steps:

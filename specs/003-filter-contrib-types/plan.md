@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add an optional configuration parameter to the Contributor Card to specify exactly which types of contributions (commits, PRs, issues, code reviews) should be fetched and ranked. This will be configurable via a new CLI flag `--types` (or `--contrib-types`) and via a GitHub Actions input parameter `contrib_types`.
+Add an optional configuration parameter to the Contributor Card to specify exactly which types of contributions (commits, PRs, issues, code reviews) should be fetched and ranked. This will be configurable via a new CLI flag `--types` (or `--contrib-types`) and via a GitHub Actions input parameter `contrib-types`.
 
 ## Technical Context
 
@@ -59,7 +59,7 @@ tests/
 ├── test_fetcher.py      # Mocked API tests for conditional queries
 └── test_contrib_card.py # Integration test behavior
 
-action.yml               # Add `contrib_types` input
+action.yml               # Add `contrib-types` input
 ```
 
 ## Complexity Tracking
@@ -71,3 +71,4 @@ action.yml               # Add `contrib_types` input
 ### Revision: Implementation Sync 2026-03-22
 - Reason: The default value for the `--types` configuration was updated to `commits,prs` to prevent fetching of noisy non-code repositories (like issue-only contributions) by default.
 - Reason: Added logic to filter Pull Request contributions by state (OPEN/MERGED).
+- Reason: Added safety guard for dynamic query building and aligned GitHub Action input naming.
