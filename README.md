@@ -108,7 +108,7 @@ Choose from 50+ themes like `default`, `dark`, `radical`, `vue`, `tokyonight`, `
 Detailed configuration options are available for each card type:
 - **User Stats Card:** `show-icons`, `include-all-commits`, `hide`, `show`, `hide-rank`
 - **Top Languages:** `layout` (normal/compact/donut/pie), `langs-count`, `weighting`, `exclude-repo`
-- **Top Contributions:** `limit`, `exclude-repo`
+- **Top Contributions:** `limit`, `exclude-repo`, `contrib-types`
 
 [**View full configuration guide →**](EXAMPLES.md)
 

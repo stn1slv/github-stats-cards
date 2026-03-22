@@ -6,7 +6,7 @@ import pytest
 
 from src.core.config import ContribFetchConfig
 from src.core.exceptions import FetchError
-from src.github.fetcher import fetch_contributor_stats
+from src.github.fetcher import _build_contrib_query, fetch_contributor_stats
 
 
 @pytest.fixture
@@ -285,7 +285,7 @@ def test_fetch_contributor_stats_deduplication(mock_client):
 
     mock_client.async_graphql_query.side_effect = [years_response, contribs_response]
 
-    config = ContribFetchConfig(username="user", token="token", limit=5)
+    config = ContribFetchConfig(username="user", token="token", limit=5, contribution_types=["commits", "prs"])
     stats = fetch_contributor_stats(config)
 
     assert len(stats["repos"]) == 1
@@ -356,3 +356,19 @@ async def test_fetch_contributor_stats_inside_event_loop():
     config = ContribFetchConfig(username="user", token="token")
     with pytest.raises(FetchError, match="event loop is already running"):
         fetch_contributor_stats(config)
+
+
+def test_build_contrib_query():
+    # Test with all types
+    query_all = _build_contrib_query(["commits", "prs", "issues", "reviews"])
+    assert "commitContributionsByRepository" in query_all
+    assert "pullRequestContributionsByRepository" in query_all
+    assert "issueContributionsByRepository" in query_all
+    assert "pullRequestReviewContributionsByRepository" in query_all
+
+    # Test with partial types
+    query_partial = _build_contrib_query(["commits", "prs"])
+    assert "commitContributionsByRepository" in query_partial
+    assert "pullRequestContributionsByRepository" in query_partial
+    assert "issueContributionsByRepository" not in query_partial
+    assert "pullRequestReviewContributionsByRepository" not in query_partial

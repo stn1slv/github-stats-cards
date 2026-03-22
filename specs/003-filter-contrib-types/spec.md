@@ -40,7 +40,7 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 ### CLI Interface Design
 - **Command**: `github-stats-card contrib`
 - **New Flags/Options**:
-  - `--types`: Comma-separated list of contribution types to include. Allowed values: `commits`, `prs`, `issues`, `reviews`. (Default: `commits,prs,issues,reviews`)
+  - `--types`: Comma-separated list of contribution types to include. Allowed values: `commits`, `prs`, `issues`, `reviews`. (Default: `commits`)
 
 ### Configuration Changes
 - **Dataclass**: `ContribFetchConfig`
@@ -49,7 +49,7 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 
 ### Functional Requirements
 - **FR-001**: System MUST parse the comma-separated `--types` flag into a list, validating against the allowed values (`commits`, `prs`, `issues`, `reviews`).
-- **FR-002**: System MUST default to including all 4 contribution types if the flag is omitted, preserving backwards compatibility.
+- **FR-002**: System MUST default to including only `commits` if the flag is omitted, prioritizing core code contributions.
 - **FR-003**: System MUST update the data fetching process to only request data for the specified contribution types, ignoring the others.
 - **FR-004**: System MUST expose a new `contrib_types` input parameter in the automation definition (`action.yml`).
 
@@ -65,5 +65,5 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 ### Measurable Outcomes
 - **SC-001**: Users can successfully limit fetched repositories to those matching specific contribution types without the visual layout breaking.
 - **SC-002**: The automation workflow successfully accepts the new configuration parameter and passes it to the generation process.
-- **SC-003**: Omitting the new configuration retains the exact previous behavior (fetching all 4 types).
+- **SC-003**: Omitting the new configuration falls back to the default behavior (fetching only `commits`).
 - **SC-004**: Providing an invalid type results in a clear validation error before any data fetching begins.

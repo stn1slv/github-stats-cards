@@ -15,7 +15,7 @@ Add an optional configuration parameter to the Contributor Card to specify exact
 **Linting/Formatting**: `ruff` (Lint+Format), `mypy` (Strict Typing)
 **Project Structure**: `src/` layout with `tests/`
 **Performance Goals**: Decrease or maintain local generation time (fetching fewer types may slightly improve GraphQL response times).
-**Constraints**: Ensure backward compatibility (default includes all 4 types). Secure token handling remains unchanged.
+**Constraints**: Ensure safe default (default includes only `commits`). Secure token handling remains unchanged.
 
 ## Constitution Check
 

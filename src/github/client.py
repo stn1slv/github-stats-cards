@@ -203,7 +203,7 @@ class GitHubClient:
         try:
             response = self.client.get(url)
             response.raise_for_status()
-            return cast(bytes, response.content)
+            return response.content
         except httpx.HTTPError:
             return None
 
@@ -220,6 +220,6 @@ class GitHubClient:
         try:
             response = await self.async_client.get(url)
             response.raise_for_status()
-            return cast(bytes, response.content)
+            return response.content
         except httpx.HTTPError:
             return None

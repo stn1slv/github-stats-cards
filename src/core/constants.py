@@ -76,3 +76,6 @@ FONT_WEIGHT_RANK = 800
 NUMBER_FORMAT_SHORT = "short"
 NUMBER_FORMAT_LONG = "long"
 NUMBER_FORMAT_THOUSAND_DIVISOR = 1000
+
+# Valid Contribution Types for Contributor Card
+VALID_CONTRIB_TYPES: frozenset[str] = frozenset({"commits", "prs", "issues", "reviews"})

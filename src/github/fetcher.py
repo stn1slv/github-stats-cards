@@ -343,22 +343,39 @@ _REPO_FRAGMENT = """
   }
 """
 
-_CONTRIB_QUERY = f"""
+
+def _build_contrib_query(contribution_types: list[str]) -> str:
+    """Build the GraphQL query dynamically based on requested contribution types."""
+    fragments = []
+
+    if "commits" in contribution_types:
+        fragments.append(f"""
+      commitContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}""")
+    if "prs" in contribution_types:
+        fragments.append(f"""
+      pullRequestContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}""")
+    if "issues" in contribution_types:
+        fragments.append(f"""
+      issueContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}""")
+    if "reviews" in contribution_types:
+        fragments.append(f"""
+      pullRequestReviewContributionsByRepository(maxRepositories: 100) {{
+        {_REPO_FRAGMENT}
+      }}""")
+
+    joined_fragments = "\n".join(fragments)
+
+    return f"""
 query userContribs($login: String!, $from: DateTime!, $to: DateTime!) {{
   user(login: $login) {{
     contributionsCollection(from: $from, to: $to) {{
-      commitContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
-      }}
-      pullRequestContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
-      }}
-      issueContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
-      }}
-      pullRequestReviewContributionsByRepository(maxRepositories: 100) {{
-        {_REPO_FRAGMENT}
-      }}
+{joined_fragments}
     }}
   }}
 }}
@@ -400,6 +417,7 @@ async def _async_process_year_contributions(
     year: int,
     raw_repos_map: dict[str, dict[str, Any]],
     lock: asyncio.Lock,
+    contribution_types: list[str],
 ) -> None:
     """Fetch and merge one year's contribution data into *raw_repos_map* asynchronously.
 
@@ -411,13 +429,16 @@ async def _async_process_year_contributions(
         year: Calendar year to fetch
         raw_repos_map: Mutable accumulator mapping ``nameWithOwner`` to repo data
         lock: Asyncio lock for raw_repos_map protection
+        contribution_types: List of contribution types to fetch
     """
     from_date = f"{year}-01-01T00:00:00Z"
     to_date = f"{year}-12-31T23:59:59Z"
 
+    query = _build_contrib_query(contribution_types)
+
     try:
         c_data = await client.async_graphql_query(
-            _CONTRIB_QUERY,
+            query,
             {"login": username, "from": from_date, "to": to_date},
         )
 
@@ -428,14 +449,19 @@ async def _async_process_year_contributions(
         if not collection:
             return
 
-        contrib_types = [
+        all_contrib_types = [
             ("commitContributionsByRepository", "commits"),
             ("pullRequestContributionsByRepository", "prs"),
             ("issueContributionsByRepository", "issues"),
             ("pullRequestReviewContributionsByRepository", "reviews"),
         ]
 
-        for gh_key, stats_key in contrib_types:
+        # Only process the types that were requested
+        active_contrib_types = [
+            (gh_key, stats_key) for gh_key, stats_key in all_contrib_types if stats_key in contribution_types
+        ]
+
+        for gh_key, stats_key in active_contrib_types:
             for item in collection.get(gh_key, []):
                 repo = item["repository"]
                 count = item["contributions"]["totalCount"]
@@ -538,7 +564,10 @@ async def async_fetch_contributor_stats(config: ContribFetchConfig) -> Contribut
         raw_repos_map: dict[str, dict[str, Any]] = {}
         lock = asyncio.Lock()
         tasks = [
-            _async_process_year_contributions(client, config.username, year, raw_repos_map, lock) for year in years
+            _async_process_year_contributions(
+                client, config.username, year, raw_repos_map, lock, config.contribution_types
+            )
+            for year in years
         ]
         await asyncio.gather(*tasks)
 

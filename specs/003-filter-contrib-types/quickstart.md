@@ -15,7 +15,7 @@ The `--types` flag accepts a comma-separated list of the following values:
 *   `issues`
 *   `reviews`
 
-By default, if the flag is omitted, all four types are included.
+By default, if the flag is omitted, only `commits` are included.
 
 ## GitHub Actions
 

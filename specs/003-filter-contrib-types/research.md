@@ -10,10 +10,10 @@ The feature requires filtering the specific contribution types (commits, pull re
 - **Rationale:** Standard practice for CLI tools to represent multiple enum-like options. It easily maps to environment variables and YAML inputs for GitHub actions. 
 - **Alternatives considered:** Multiple flag declarations (e.g., `--type commits --type prs`), but comma-separated is cleaner for GitHub actions configuration.
 
-### 2. Backward Compatibility
-- **Decision:** If the `--types` parameter is omitted, default to all four types: `["commits", "prs", "issues", "reviews"]`.
-- **Rationale:** Existing users of the action/CLI should not see their generated SVGs drop repositories without explicit configuration changes.
-- **Alternatives considered:** None, backward compatibility is strictly required.
+### 2. Default Values
+- **Decision:** If the `--types` parameter is omitted, default to only `commits`: `["commits"]`.
+- **Rationale:** Focuses on the most common indicator of code contribution by default. Users who want the broad net can explicitly specify `commits,prs,issues,reviews`.
+- **Alternatives considered:** Defaulting to all four types. Rejected because it often includes "noisy" repositories where a user only opened a single issue.
 
 ### 3. Modifying GraphQL Query
 - **Decision:** Dynamically construct the GraphQL query string in `src/github/fetcher.py` based on the requested `contribution_types` in the `ContribFetchConfig`. Exclude the sub-queries (e.g., `issueContributionsByRepository`) entirely if they are not in the list.

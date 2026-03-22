@@ -29,7 +29,7 @@ class BaseConfig:
         filtered = {k: v for k, v in kwargs.items() if k in valid_fields and v is not None}
 
         # Handle known list fields
-        for list_key in ["hide", "show", "exclude_repo"]:
+        for list_key in ["hide", "show", "exclude_repo", "contribution_types"]:
             if list_key in filtered:
                 filtered[list_key] = parse_list_arg(filtered[list_key])
 
@@ -155,3 +155,4 @@ class ContribFetchConfig(BaseConfig):
     token: str
     limit: int = 10
     exclude_repo: list[str] = field(default_factory=list)
+    contribution_types: list[str] = field(default_factory=lambda: ["commits"])

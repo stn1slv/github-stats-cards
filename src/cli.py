@@ -651,6 +651,13 @@ def top_langs(
     is_flag=True,
     help="Disable CSS animations",
 )
+@click.option(
+    "--types",
+    "--contrib-types",
+    "contribution_types",
+    default="commits",
+    help="Comma-separated list of contribution types to fetch (commits,prs,issues,reviews)",
+)
 def contrib(
     username: str,
     token: str,
@@ -668,6 +675,7 @@ def contrib(
     custom_title: str | None,
     border_radius: float,
     disable_animations: bool,
+    contribution_types: str,
 ) -> None:
     """
     Generate Top Contributions Card SVG.
@@ -689,12 +697,23 @@ def contrib(
         --exclude-repo "facebook/react,microsoft/vscode"
     """
     try:
+        from src.core.constants import VALID_CONTRIB_TYPES
+
+        # Validate contribution types
+        parsed_types = [t.strip() for t in contribution_types.split(",") if t.strip()]
+        for c_type in parsed_types:
+            if c_type not in VALID_CONTRIB_TYPES:
+                raise click.BadParameter(
+                    f"Invalid contribution type '{c_type}'. Allowed: {', '.join(VALID_CONTRIB_TYPES)}"
+                )
+
         # Create fetch configuration
         fetch_config = ContribFetchConfig.from_cli_args(
             username=username,
             token=token,
             limit=limit,
             exclude_repo=exclude_repo,
+            contribution_types=contribution_types,
         )
 
         # Fetch stats from GitHub

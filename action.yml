@@ -96,6 +96,11 @@ inputs:
     required: false
     default: ''
   
+  contrib-types:
+    description: 'Comma-separated list of contribution types to fetch (commits,prs,issues,reviews) - contrib only'
+    required: false
+    default: ''
+  
   # Color customization
   title-color:
     description: 'Custom title color (hex without #)'
@@ -206,6 +211,7 @@ runs:
         if [ "${{ inputs.card-type }}" = "contrib" ]; then
           CMD="$CMD --limit ${{ inputs.limit }}"
           [ -n "${{ inputs.exclude-repo }}" ] && CMD="$CMD --exclude-repo '${{ inputs.exclude-repo }}'"
+          [ -n "${{ inputs.contrib-types }}" ] && CMD="$CMD --contrib-types '${{ inputs.contrib-types }}'"
         fi
         
         # Add optional parameters
