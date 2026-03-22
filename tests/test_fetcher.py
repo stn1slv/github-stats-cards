@@ -376,6 +376,12 @@ def test_build_contrib_query():
     assert "pullRequestReviewContributionsByRepository" not in query_partial
 
 
+def test_build_contrib_query_empty_raises():
+    """Test that _build_contrib_query raises ValueError on empty list."""
+    with pytest.raises(ValueError, match="must not be empty"):
+        _build_contrib_query([])
+
+
 def test_fetch_contributor_stats_pr_filtering(mock_client):
     """Test that PR contributions are filtered by state (OPEN/MERGED)."""
     # 1. Years response

@@ -123,3 +123,11 @@ def test_contrib_command_with_invalid_types():
 
     assert result.exit_code != 0
     assert "Invalid contribution type 'invalid'" in result.stderr
+
+
+def test_contrib_command_with_empty_types():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["contrib", "-u", "user", "-t", "token", "-o", "contrib.svg", "--types", ""])
+
+    assert result.exit_code != 0
+    assert "At least one contribution type is required" in result.stderr

@@ -701,19 +701,23 @@ def contrib(
 
         # Validate contribution types
         parsed_types = [t.strip() for t in contribution_types.split(",") if t.strip()]
+        if not parsed_types:
+            raise click.BadParameter(
+                f"At least one contribution type is required. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
+            )
         for c_type in parsed_types:
             if c_type not in VALID_CONTRIB_TYPES:
                 raise click.BadParameter(
-                    f"Invalid contribution type '{c_type}'. Allowed: {', '.join(VALID_CONTRIB_TYPES)}"
+                    f"Invalid contribution type '{c_type}'. Allowed: {', '.join(sorted(VALID_CONTRIB_TYPES))}"
                 )
 
-        # Create fetch configuration
+        # Create fetch configuration (pass parsed list to avoid double-parsing)
         fetch_config = ContribFetchConfig.from_cli_args(
             username=username,
             token=token,
             limit=limit,
             exclude_repo=exclude_repo,
-            contribution_types=contribution_types,
+            contribution_types=parsed_types,
         )
 
         # Fetch stats from GitHub

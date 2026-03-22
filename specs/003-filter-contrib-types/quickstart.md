@@ -35,5 +35,5 @@ steps:
     with:
       token: ${{ secrets.GITHUB_TOKEN }}
       username: your_username
-      contrib_types: 'commits,prs'
+      contrib-types: 'commits,prs'
 ```

@@ -343,6 +343,10 @@ _REPO_DETAILS_FRAGMENT = """
 
 def _build_contrib_query(contribution_types: list[str]) -> str:
     """Build the GraphQL query dynamically based on requested contribution types."""
+    if not contribution_types:
+        msg = "contribution_types must not be empty"
+        raise ValueError(msg)
+
     fragments = []
 
     if "commits" in contribution_types:
@@ -356,7 +360,7 @@ def _build_contrib_query(contribution_types: list[str]) -> str:
         fragments.append(f"""
       pullRequestContributionsByRepository(maxRepositories: 100) {{
         {_REPO_DETAILS_FRAGMENT}
-        contributions(first: 100) {{
+        contributions(first: 100) {{  # NOTE: repos with >100 PRs/year will be undercounted
           nodes {{
             pullRequest {{
               state

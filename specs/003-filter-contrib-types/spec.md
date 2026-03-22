@@ -51,7 +51,7 @@ As a user running the stats card generation in an automated workflow (e.g., GitH
 - **FR-001**: System MUST parse the comma-separated `--types` flag into a list, validating against the allowed values (`commits`, `prs`, `issues`, `reviews`).
 - **FR-002**: System MUST default to including `commits` and `prs` if the flag is omitted, prioritizing core code contributions.
 - **FR-003**: System MUST update the data fetching process to only request data for the specified contribution types, ignoring the others.
-- **FR-004**: System MUST expose a new `contrib_types` input parameter in the automation definition (`action.yml`).
+- **FR-004**: System MUST expose a new `contrib-types` input parameter in the automation definition (`action.yml`).
 - **FR-005**: When `prs` are selected, the system MUST only count Pull Requests that are in `OPEN` or `MERGED` state, excluding `CLOSED` (unmerged) pull requests.
 
 ### Visual/Output Requirements

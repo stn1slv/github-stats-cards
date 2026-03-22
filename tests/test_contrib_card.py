@@ -62,3 +62,13 @@ class TestContribFetchConfig:
         assert config.limit == 5
         assert config.exclude_repo == ["repo1", "repo2"]
         assert config.contribution_types == ["commits", "prs"]
+
+    def test_validation_empty_types(self):
+        """Test that empty contribution_types raises ValueError."""
+        with pytest.raises(ValueError, match="contribution_types cannot be empty"):
+            ContribFetchConfig(username="user", token="token", contribution_types=[])
+
+    def test_validation_invalid_types(self):
+        """Test that invalid contribution_types raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid contribution type 'invalid'"):
+            ContribFetchConfig(username="user", token="token", contribution_types=["commits", "invalid"])
