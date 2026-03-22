@@ -9,7 +9,7 @@ The project is a fully functional, highly modular Python CLI tool. It supports *
 - **CLI Framework:** `click`
 - **HTTP Client:** `httpx` (via centralized `GitHubClient`, supports async)
 - **Testing:** `pytest` with `pytest-cov`, `pytest-mock`, and `anyio` (for async tests)
-- **Formatting/Linting:** `ruff`, `black`, `mypy`
+- **Formatting/Linting:** `ruff` (lint + format), `mypy`
 - **Build System:** `hatchling`
 
 ## Project Structure
@@ -40,7 +40,7 @@ src/
 ```
 
 ## Primary Dependencies
-- `requests>=2.28.0`: For GitHub API interaction.
+- `httpx>=0.27.0`: For GitHub API interaction (sync + async).
 - `click>=8.0.0`: For the command-line interface.
 
 ## Configuration
@@ -56,6 +56,7 @@ src/
 - All new features must align with the 3-tier sub-package architecture.
 
 ## Recent Changes
+- **Contribution Type Filtering (2026-03-22):** Added `--types`/`--contrib-types` CLI flag and `contrib-types` GitHub Actions input to filter contributor card by type (`commits`, `prs`, `issues`, `reviews`). Default: `commits,prs`. Dynamic GraphQL query building. PR state filtering (OPEN/MERGED only). [Source: specs/003-filter-contrib-types]
 - **Async HTTP Migration (2026-03-13):** Migrated HTTP boundary from `requests` to `httpx`.
   - Added async capabilities to `GitHubClient` for concurrent fetching.
   - Refactored `fetch_contributor_stats` to fetch years and avatars in parallel using `asyncio.gather`.

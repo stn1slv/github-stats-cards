@@ -114,8 +114,7 @@ The project uses `uv` for all lifecycle tasks.
 - **Gotcha:** Requires fetching `nodes` instead of using `totalCount` for the `pullRequestContributionsByRepository` GraphQL field, which impacts query structure.
 
 ## Recent Changes
-- [Contribution Filtering] (2026-03-22): Added `--types` flag to `contrib` card; default to `commits,prs`; implemented PR state filtering (OPEN/MERGED).
-- 003-filter-contrib-types: Added Python 3.13+ (Managed by `uv`) + Click (CLI), httpx (API), Built-in XML/SVG libraries
+- [Contribution Filtering] (2026-03-22): Added `--types` flag to `contrib` card; default to `commits,prs`; implemented PR state filtering (OPEN/MERGED). [Source: specs/003-filter-contrib-types]
 ### [Code Quality Refactor] (2026-02-22)
 - Renamed `stats` command to `user-stats`; `stats` kept as backward-compatible alias via `AliasGroup`.
 - Extracted `CardStyleConfig` base class; unified fetcher APIs to accept config objects.

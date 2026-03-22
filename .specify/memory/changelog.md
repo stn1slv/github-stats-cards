@@ -81,3 +81,24 @@
 - `src/github/fetcher.py`: Updated fetch logic for repo magnitude.
 
 **Tasks Completed:** 9 tasks
+
+### [Filter Contribution Types] — 2026-03-22
+**Branch:** `003-filter-contrib-types`
+**Spec:** specs/003-filter-contrib-types
+
+**What was added:**
+- CLI flag `--types`/`--contrib-types` to filter contributor card by contribution type (commits, prs, issues, reviews).
+- GitHub Actions input `contrib-types` with explicit default `commits,prs`.
+- Dynamic GraphQL query building — only requested types are fetched.
+- PR state filtering: only OPEN and MERGED PRs counted as contributions.
+- Three-layer validation: CLI (BadParameter), dataclass (`__post_init__`), query builder (`_build_contrib_query`).
+- `VALID_CONTRIB_TYPES` constant in `src/core/constants.py`.
+
+**Modified Components:**
+- `src/cli.py`: Added `--types` option to `contrib` command.
+- `src/core/config.py`: Added `contribution_types` field to `ContribFetchConfig` with `__post_init__` validation.
+- `src/core/constants.py`: Added `VALID_CONTRIB_TYPES` frozenset.
+- `src/github/fetcher.py`: Dynamic `_build_contrib_query`, PR state filtering, type validation.
+- `action.yml`: Added `contrib-types` input.
+
+**Tasks Completed:** 20/20 tasks

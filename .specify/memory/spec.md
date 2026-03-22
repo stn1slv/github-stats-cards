@@ -14,6 +14,8 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
 - **US-008:** As a user, I want to apply existing themes to the contributor card for consistency.
 - **US-009:** As a user, I want clear feedback if I have no contributions or if I provide invalid limits.
 - **US-010:** As a user, I want the contributor card to rank repositories based on their popularity and magnitude, so that contributing to massive projects (like Debezium) is recognized with a high rank regardless of my commit count.
+- **US-011:** As a user generating a contributor card via the CLI, I want to specify which types of contributions to consider (e.g., only commits and pull requests) so that my card highlights only my active code contributions. [Source: specs/003-filter-contrib-types]
+- **US-012:** As a user running card generation via GitHub Actions, I want to configure contribution types via workflow inputs so that my profile is automatically updated with filtered contribution data. [Source: specs/003-filter-contrib-types]
 
 ## Functional Requirements
 
@@ -79,6 +81,16 @@ A Python CLI tool that generates beautiful GitHub stats cards as SVG images for 
     - (None): Medium Project (100-5k commits) OR Unknown Magnitude (0 commits).
 - **FR-012: Repository Exclusion Wildcards** [Source: 001-contributor-card]
   - Repository exclusion MUST support wildcard (*) matching and owner-omitted matching (e.g., "awesome-*" matches any repo starting with "awesome-" regardless of owner). Matching MUST be case-insensitive.
+- **FR-013: Contribution Type Filtering (CLI)** [Source: specs/003-filter-contrib-types]
+  - System MUST parse the comma-separated `--types` flag into a list, validating against allowed values (`commits`, `prs`, `issues`, `reviews`).
+- **FR-014: Contribution Type Defaults** [Source: specs/003-filter-contrib-types]
+  - System MUST default to including `commits` and `prs` if the `--types` flag is omitted.
+- **FR-015: Dynamic GraphQL Query Building** [Source: specs/003-filter-contrib-types]
+  - System MUST update the data fetching process to only request data for the specified contribution types, building the GraphQL query dynamically.
+- **FR-016: GitHub Actions Contribution Types Input** [Source: specs/003-filter-contrib-types]
+  - System MUST expose a `contrib-types` input parameter in `action.yml` with a default of `commits,prs`.
+- **FR-017: PR State Filtering** [Source: specs/003-filter-contrib-types]
+  - When `prs` are selected, the system MUST only count Pull Requests in `OPEN` or `MERGED` state, excluding `CLOSED` (unmerged) pull requests.
 
 ## Non-Functional Requirements
 - **NFR-001: Performance** - Card generation should be fast (fetching data is the bottleneck, mitigated by parallel async fetching using `httpx` and `asyncio`).
@@ -107,6 +119,14 @@ Configuration for contributor card rendering:
 - `exclude_repo` (list of patterns to exclude)
 - `theme`, `colors` (title, text, bg, border)
 - `hide_border`, `card_width`, `border_radius`, `disable_animations`
+
+### ContribFetchConfig (`src/core/config.py`) [Updated: specs/003-filter-contrib-types]
+Configuration for fetching contributor data:
+- `username`, `token`, `limit`, `exclude_repo`
+- `contribution_types: list[str]` — Types to fetch. Allowed: `commits`, `prs`, `issues`, `reviews`. Default: `["commits", "prs"]`. Validated in `__post_init__` against `VALID_CONTRIB_TYPES`.
+
+### VALID_CONTRIB_TYPES (`src/core/constants.py`) [Source: specs/003-filter-contrib-types]
+`frozenset[str]` containing `{"commits", "prs", "issues", "reviews"}`.
 
 ### UserStats (`src/github/fetcher.py`)
 TypedDict containing raw statistics from GitHub API.
@@ -144,3 +164,6 @@ TypedDict representing a contributed repository with name, stars, rank level, an
 - Repositories with no languages
 - Avatar fetch failures (fallback to placeholder)
 - No external contributions found
+- Invalid contribution type in `--types` flag (validation error before API call) [Source: specs/003-filter-contrib-types]
+- Empty `--types` flag (validation error: at least one type required) [Source: specs/003-filter-contrib-types]
+- PR contributions exceeding 100 nodes per repo/year (silently undercounted; documented limitation) [Source: specs/003-filter-contrib-types]
