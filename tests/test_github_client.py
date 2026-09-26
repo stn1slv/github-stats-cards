@@ -47,6 +47,20 @@ def test_graphql_query_error(client):
             client.graphql_query("query")
 
 
+def test_graphql_query_invalid_json(client):
+    with patch("src.github.client.GitHubClient.client", new_callable=PropertyMock) as mock_client_prop:
+        mock_httpx_client = MagicMock()
+        mock_client_prop.return_value = mock_httpx_client
+
+        mock_response = MagicMock()
+        mock_response.json.side_effect = ValueError("Expecting value")
+        mock_response.raise_for_status.return_value = None
+        mock_httpx_client.post.return_value = mock_response
+
+        with pytest.raises(APIError, match="GitHub API request failed"):
+            client.graphql_query("query")
+
+
 @pytest.mark.anyio
 async def test_async_graphql_query_success(client):
     with patch("src.github.client.GitHubClient.async_client", new_callable=PropertyMock) as mock_client_prop:

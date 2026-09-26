@@ -130,7 +130,8 @@ class GitHubClient:
             )
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, ValueError) as e:
+            # ValueError covers a body that is not JSON, such as a proxy error page.
             raise APIError(f"GitHub API request failed: {e}") from e
 
     async def async_graphql_query(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -155,7 +156,8 @@ class GitHubClient:
             )
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, ValueError) as e:
+            # ValueError covers a body that is not JSON, such as a proxy error page.
             raise APIError(f"GitHub API request failed: {e}") from e
 
     def rest_get(self, url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
@@ -183,7 +185,8 @@ class GitHubClient:
             )
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, ValueError) as e:
+            # ValueError covers a body that is not JSON, such as a proxy error page.
             raise APIError(f"GitHub API request failed: {e}") from e
 
     async def async_rest_get(self, url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
@@ -211,7 +214,8 @@ class GitHubClient:
             )
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, ValueError) as e:
+            # ValueError covers a body that is not JSON, such as a proxy error page.
             raise APIError(f"GitHub API request failed: {e}") from e
 
     def fetch_image(self, url: str) -> bytes | None:

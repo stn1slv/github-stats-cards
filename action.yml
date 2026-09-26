@@ -223,8 +223,11 @@ runs:
           SUBCOMMAND="user-stats"
         elif [ "$CARD_TYPE" = "top-langs" ]; then
           SUBCOMMAND="top-langs"
-        else
+        elif [ "$CARD_TYPE" = "contrib" ]; then
           SUBCOMMAND="contrib"
+        else
+          echo "::error::Unknown card-type '$CARD_TYPE'. Use user-stats, top-langs or contrib."
+          exit 1
         fi
 
         # Common options. Optional values are only appended when non-empty, so an
