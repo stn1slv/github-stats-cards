@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-09-26
+
+### Fixed
+
+- The action now fails on an unknown `card-type`, for example `top-lang`, and lists the valid types. It used to render a `contrib` card instead.
+- A GitHub API response that is not JSON, such as an HTML error page from a proxy, is now reported as an API error instead of an unexpected error.
+- `__version__` now reports the package version. It said 0.1.0.
+
+### Changed
+
+- The composite action installs uv 0.12.19 instead of whatever version `pip install uv` resolves to, and its actions are pinned to commit SHAs.
+
 ## [1.4.0] - 2026-09-05
 
 ### Removed
