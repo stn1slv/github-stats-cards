@@ -64,7 +64,7 @@ run:
 	uv run github-stats-card --help
 
 # Run all checks
-check: format lint type-check test
+check: format-check lint type-check test
 
 # Clean cache and build artifacts
 clean:
