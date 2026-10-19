@@ -11,7 +11,14 @@ from ..core.constants import (
     CARD_PADDING,
     DEFAULT_USER_STATS_CARD_WIDTH,
     FONT_SIZE_STAT,
+    HIDDEN_TITLE_BODY_OFFSET,
     MIN_CARD_WIDTH,
+    RANK_CIRCLE_BOTTOM,
+    RANK_CIRCLE_BOTTOM_PADDING,
+    RANK_CIRCLE_CIRCUMFERENCE,
+    RANK_CIRCLE_CX_OFFSET,
+    RANK_CIRCLE_CY_OFFSET,
+    RANK_CIRCLE_RADIUS,
     RANK_CIRCLE_RIGHT_MARGIN,
     RANK_CIRCLE_RIM_LEFT_INSET,
     RANK_CIRCLE_Y_OFFSET,
@@ -22,7 +29,7 @@ from ..core.constants import (
     USER_STATS_CARD_BASE_HEIGHT,
 )
 from ..core.i18n import get_translation
-from ..core.utils import encode_html, k_formatter, measure_text
+from ..core.utils import clamp_value, encode_html, k_formatter, measure_text
 from ..github.fetcher import UserStats
 from ..github.rank import RankResult, calculate_user_rank
 from .base import render_card
@@ -30,6 +37,22 @@ from .colors import get_card_colors
 from .icons import get_icon_svg
 
 logger = logging.getLogger(__name__)
+
+# Every key that --hide and --show accept. Must match the keys of
+# _get_stat_definitions, which a test asserts.
+STAT_KEYS: tuple[str, ...] = (
+    "stars",
+    "commits",
+    "prs",
+    "prs_merged",
+    "prs_merged_percentage",
+    "issues",
+    "contribs",
+    "repos",
+    "reviews",
+    "discussions_started",
+    "discussions_answered",
+)
 
 
 def _get_stat_definitions(stats: UserStats, locale: str) -> dict[str, dict[str, Any]]:
@@ -272,11 +295,17 @@ def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str
         rank_x = final_width - RANK_CIRCLE_RIGHT_MARGIN
         rank_y = RANK_CIRCLE_Y_OFFSET
 
+        # The arc shows how far up the ranking the user is: the percentile (lower
+        # is better) is the share of the circumference the dash offset hides.
+        percentile = clamp_value(rank_result["percentile"], 0, 100)
+        dash_offset = RANK_CIRCLE_CIRCUMFERENCE * percentile / 100
+
+        circle_attrs = f'cx="{RANK_CIRCLE_CX_OFFSET}" cy="{RANK_CIRCLE_CY_OFFSET}" r="{RANK_CIRCLE_RADIUS}"'
         rank_svg = f"""
     <g data-testid="rank-circle"
           transform="translate({rank_x}, {rank_y})">
-        <circle class="rank-circle-rim" cx="-10" cy="8" r="40" />
-        <circle class="rank-circle" cx="-10" cy="8" r="40" />
+        <circle class="rank-circle-rim" {circle_attrs} />
+        <circle class="rank-circle" {circle_attrs} stroke-dashoffset="{dash_offset:.2f}" />
         <g class="rank-text">
           {_render_rank_content(rank_result, config.rank_icon)}
         </g>
@@ -296,6 +325,12 @@ def render_user_stats_card(stats: UserStats, config: UserStatsCardConfig) -> str
     # Add 30px extra height when title is shown (55px offset vs 25px)
     if not config.hide_title:
         card_height += 30
+
+    if not config.hide_rank:
+        # The ring is taller than a few stat rows, so floor the height to keep it
+        # from being cut off by the bottom border.
+        body_offset = HIDDEN_TITLE_BODY_OFFSET + (0 if config.hide_title else 30)
+        card_height = max(card_height, math.ceil(body_offset + RANK_CIRCLE_BOTTOM + RANK_CIRCLE_BOTTOM_PADDING))
 
     return render_card(
         title=title,

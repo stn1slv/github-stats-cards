@@ -9,13 +9,15 @@ from src.core.config import UserStatsCardConfig
 from src.core.constants import (
     CARD_PADDING,
     FONT_SIZE_STAT,
+    RANK_CIRCLE_BOTTOM,
+    RANK_CIRCLE_CIRCUMFERENCE,
     RANK_CIRCLE_RIM_LEFT_INSET,
     STAT_LABEL_X_WITH_ICON,
     STAT_VALUE_X_POSITION,
 )
 from src.core.utils import measure_text
 from src.github.fetcher import UserStats
-from src.rendering.user_stats import render_user_stats_card
+from src.rendering.user_stats import STAT_KEYS, _get_stat_definitions, render_user_stats_card
 
 
 @pytest.fixture
@@ -259,3 +261,53 @@ def test_render_user_stats_card_does_not_warn_when_the_width_fits(sample_stats, 
         render_user_stats_card(sample_stats, UserStatsCardConfig(card_width=800))
 
     assert caplog.text == ""
+
+
+def _rank_arc_offset(svg: str) -> float:
+    match = re.search(r'class="rank-circle" [^>]*stroke-dashoffset="([\d.]+)"', svg)
+    assert match, "rank-circle has no stroke-dashoffset"
+    return float(match.group(1))
+
+
+def test_rank_ring_progress_follows_the_percentile(sample_stats):
+    """The arc used to be a constant full ring, whatever the rank."""
+    strong = {**sample_stats, "totalCommits": 5000, "totalPRs": 500, "totalStars": 5000, "followers": 1000}
+    weak = {**sample_stats, "totalCommits": 1, "totalPRs": 0, "totalIssues": 0, "totalStars": 0, "followers": 0}
+
+    strong_offset = _rank_arc_offset(render_user_stats_card(strong, UserStatsCardConfig()))
+    weak_offset = _rank_arc_offset(render_user_stats_card(weak, UserStatsCardConfig()))
+
+    # A larger offset hides more of the arc, so the weaker profile shows less ring
+    assert strong_offset < weak_offset
+    assert 0 <= strong_offset <= RANK_CIRCLE_CIRCUMFERENCE
+    assert 0 <= weak_offset <= RANK_CIRCLE_CIRCUMFERENCE
+
+
+def test_rank_ring_is_not_cut_off_when_few_stats_are_shown(sample_stats):
+    """Hiding stats used to shrink the card below the bottom of the ring."""
+    for hide_title, body_offset in ((False, 55), (True, 25)):
+        config = UserStatsCardConfig(hide=["stars", "commits", "prs", "issues"], hide_title=hide_title)
+        svg = render_user_stats_card(sample_stats, config)
+        height = float(re.search(r'<svg width="\d+" height="(\d+)"', svg).group(1))
+
+        assert height >= body_offset + RANK_CIRCLE_BOTTOM
+
+
+def test_hidden_rank_does_not_floor_the_card_height(sample_stats):
+    config = UserStatsCardConfig(hide=["stars", "commits", "prs", "issues"], hide_rank=True)
+    svg = render_user_stats_card(sample_stats, config)
+
+    # One stat row (25) + base height (40) + title (30)
+    assert '<svg width="467" height="95"' in svg
+
+
+def test_stat_keys_match_the_stat_definitions(sample_stats):
+    """--hide and --show are validated against STAT_KEYS, so it must not drift."""
+    assert set(STAT_KEYS) == set(_get_stat_definitions(sample_stats, "en"))
+
+
+def test_rank_ring_dash_array_matches_its_circumference(sample_stats):
+    """A dash shorter than the circle left a gap at the top even for the best rank."""
+    svg = render_user_stats_card(sample_stats, UserStatsCardConfig())
+
+    assert f"stroke-dasharray: {RANK_CIRCLE_CIRCUMFERENCE:.2f};" in svg

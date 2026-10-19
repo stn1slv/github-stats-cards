@@ -15,11 +15,16 @@ from src.rendering.colors import (
 @pytest.mark.parametrize(
     ("colors", "expected_attrs"),
     [
-        (["0", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
-        (["90", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "0%", "y2": "100%"}),
-        (["180", "ff0000", "00ff00"], {"x1": "100%", "y1": "0%", "x2": "0%", "y2": "0%"}),
-        (["270", "ff0000", "00ff00"], {"x1": "0%", "y1": "100%", "x2": "0%", "y2": "0%"}),
-        (["not_a_number", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
+        (["0", "ff0000", "00ff00"], {"x1": "0%", "y1": "50%", "x2": "100%", "y2": "50%"}),
+        (["90", "ff0000", "00ff00"], {"x1": "50%", "y1": "0%", "x2": "50%", "y2": "100%"}),
+        (["180", "ff0000", "00ff00"], {"x1": "100%", "y1": "50%", "x2": "0%", "y2": "50%"}),
+        (["270", "ff0000", "00ff00"], {"x1": "50%", "y1": "100%", "x2": "50%", "y2": "0%"}),
+        # Diagonals used to snap to the nearest axis; they now run corner to corner
+        (["45", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "100%"}),
+        (["135", "ff0000", "00ff00"], {"x1": "100%", "y1": "0%", "x2": "0%", "y2": "100%"}),
+        # Negative angles used to fall back to 0
+        (["-90", "ff0000", "00ff00"], {"x1": "50%", "y1": "100%", "x2": "50%", "y2": "0%"}),
+        (["not_a_number", "ff0000", "00ff00"], {"x1": "0%", "y1": "50%", "x2": "100%", "y2": "50%"}),
     ],
 )
 def test_format_gradient(colors: list[str], expected_attrs: dict[str, str]):
@@ -53,6 +58,11 @@ def test_is_valid_hex_color(color: str, expected: bool):
         (["90", "ff0000", "00ff00"], True),
         (["90", "ff0000"], False),
         (["90", "gggggg", "00ff00"], False),
+        (["-45", "ff0000", "00ff00"], True),
+        (["foo", "ff0000", "00ff00"], False),
+        (["4.5", "ff0000", "00ff00"], False),
+        # int() rejects strings past Python's digit limit, which used to crash rendering
+        (["9" * 5000, "ff0000", "00ff00"], False),
     ],
 )
 def test_is_valid_gradient(parts: list[str], expected: bool):
@@ -136,3 +146,9 @@ def test_resolve_color_collapses_a_gradient_to_its_first_stop():
 
 def test_resolve_color_falls_back_when_a_gradient_has_no_stop():
     assert resolve_color(["90"], "#000000") == "#000000"
+
+
+def test_format_gradient_falls_back_for_an_absurdly_long_angle():
+    """An angle past int()'s digit limit must not reach int() at all."""
+    _, grad_svg = format_gradient(["9" * 5000, "ff0000", "00ff00"])
+    assert 'x1="0%" y1="50%" x2="100%" y2="50%"' in grad_svg

@@ -284,3 +284,74 @@ def test_fetch_user_stats_without_commits_year_omits_the_date_range(mock_client)
     query, variables = mock_client.graphql_query.call_args[0]
     assert "$from: DateTime!" not in query
     assert "from" not in variables
+
+
+def _user_payload(has_next_page: bool = False) -> dict:
+    """Build a minimal first-page user payload with zero counts."""
+    return {
+        "data": {
+            "user": {
+                "name": "User",
+                "login": "user",
+                "contributionsCollection": {"totalCommitContributions": 0, "totalPullRequestReviewContributions": 0},
+                "repositoriesContributedTo": {"totalCount": 0},
+                "pullRequests": {"totalCount": 0},
+                "mergedPullRequests": {"totalCount": 0},
+                "openIssues": {"totalCount": 0},
+                "closedIssues": {"totalCount": 0},
+                "followers": {"totalCount": 0},
+                "repositories": {
+                    "totalCount": 1,
+                    "nodes": [{"stargazers": {"totalCount": 7}}],
+                    "pageInfo": {"hasNextPage": has_next_page, "endCursor": "c1" if has_next_page else None},
+                },
+            }
+        }
+    }
+
+
+def test_fetch_user_stats_tolerates_null_discussion_fields_and_warns(mock_client, caplog):
+    """A field present as null used to raise AttributeError, reported as 'Unexpected error'."""
+    disc_response = {
+        "data": {"user": {"repositoryDiscussions": None, "repositoryDiscussionComments": None}},
+        "errors": [{"message": "Discussions are disabled"}],
+    }
+    mock_client.graphql_query.side_effect = [_user_payload(), disc_response]
+    mock_client.rest_get.return_value = {"total_count": 0}
+
+    config = UserStatsFetchConfig(username="user", token="t", show=["discussions_started", "discussions_answered"])
+    with caplog.at_level(logging.WARNING, logger="src.github.fetcher"):
+        stats = fetch_user_stats(config)
+
+    assert stats["discussionsStarted"] == 0
+    assert stats["discussionsAnswered"] == 0
+    assert "Discussions query returned incomplete data" in caplog.text
+    assert "Discussions are disabled" in caplog.text
+
+
+def test_fetch_user_stats_warns_when_repository_pagination_fails(mock_client, caplog):
+    """The star total is short by every unread page, so the shortfall must be logged."""
+    mock_client.graphql_query.side_effect = [_user_payload(has_next_page=True), APIError("boom")]
+    mock_client.rest_get.return_value = {"total_count": 0}
+
+    with caplog.at_level(logging.WARNING, logger="src.github.fetcher"):
+        stats = fetch_user_stats(UserStatsFetchConfig(username="user", token="t"))
+
+    assert stats["totalStars"] == 7
+    assert "Repository pagination failed" in caplog.text
+    assert "boom" in caplog.text
+
+
+def test_fetch_user_stats_treats_a_null_discussion_count_as_zero(mock_client):
+    """A null totalCount used to reach k_formatter as None and raise TypeError."""
+    disc_response = {
+        "data": {"user": {"repositoryDiscussions": {"totalCount": None}, "repositoryDiscussionComments": {}}},
+    }
+    mock_client.graphql_query.side_effect = [_user_payload(), disc_response]
+    mock_client.rest_get.return_value = {"total_count": 0}
+
+    config = UserStatsFetchConfig(username="user", token="t", show=["discussions_started", "discussions_answered"])
+    stats = fetch_user_stats(config)
+
+    assert stats["discussionsStarted"] == 0
+    assert stats["discussionsAnswered"] == 0

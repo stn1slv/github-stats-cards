@@ -47,7 +47,7 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
           user(login: $login) {
             repositories(ownerAffiliations: OWNER, isFork: false, first: 100, after: $after) {
               nodes {
-                name
+                nameWithOwner
                 languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
                   edges {
                     size
@@ -84,11 +84,13 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
         if not user_data:
             raise LanguageFetchError(f"User '{username}' not found")
 
-        repos_data = user_data.get("repositories", {})
-        repos = list(repos_data.get("nodes", []))
+        # `or {}` / `or []` rather than .get defaults throughout: a field present as
+        # null in a partial payload must fall back too, not raise AttributeError.
+        repos_data = user_data.get("repositories") or {}
+        repos = list(repos_data.get("nodes") or [])
 
         # Paginate through remaining repositories
-        page_info = repos_data.get("pageInfo", {})
+        page_info = repos_data.get("pageInfo") or {}
         while page_info.get("hasNextPage"):
             try:
                 page_data = client.graphql_query(query, {"login": username, "after": page_info["endCursor"]})
@@ -101,9 +103,9 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
                         first_graphql_error(page_data),
                     )
                     break
-                page_repos = page_user.get("repositories", {})
-                repos.extend(page_repos.get("nodes", []))
-                page_info = page_repos.get("pageInfo", {})
+                page_repos = page_user.get("repositories") or {}
+                repos.extend(page_repos.get("nodes") or [])
+                page_info = page_repos.get("pageInfo") or {}
             except APIError as e:
                 # Continue with what we have, but say so: languages used only in
                 # the repositories on the unread pages are now missing.
@@ -113,22 +115,23 @@ def fetch_top_languages(config: LangsFetchConfig) -> dict[str, Language]:
                 )
                 break
 
-        # Filter out excluded repositories
-        repos = [r for r in repos if not is_repo_excluded(r.get("name", ""), exclude_repo)]
+        # Filter out excluded repositories. Matched on owner/name, so both the bare
+        # "repo" and the "owner/repo" pattern forms work, as they do for contrib.
+        repos = [r for r in repos if r and not is_repo_excluded(r.get("nameWithOwner") or "", exclude_repo)]
 
         # Aggregate languages across all repositories
         languages: dict[str, Language] = {}
 
         for repo in repos:
-            lang_edges = repo.get("languages", {}).get("edges", [])
+            lang_edges = (repo.get("languages") or {}).get("edges") or []
             for edge in lang_edges:
-                node = edge.get("node", {})
+                node = (edge or {}).get("node") or {}
                 lang_name = node.get("name")
                 if not lang_name:
                     continue
 
                 lang_color = node.get("color") or DEFAULT_LANG_COLOR
-                lang_size = edge.get("size", 0)
+                lang_size = edge.get("size") or 0
 
                 if lang_name in languages:
                     languages[lang_name].size += lang_size

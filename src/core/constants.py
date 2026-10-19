@@ -1,12 +1,18 @@
 """Constants for GitHub Stats Card rendering and configuration."""
 
+import math
 import os
 
 # API Configuration
 # Support GitHub Enterprise Server and other platforms via environment variables
 # Fallback to github.com if not set
 API_BASE_URL = os.environ.get("GITHUB_API_URL", "https://api.github.com")
-GRAPHQL_ENDPOINT = os.environ.get("GITHUB_GRAPHQL_URL", f"{API_BASE_URL}/graphql")
+# GitHub Enterprise Server serves REST under /api/v3 but GraphQL at /api/graphql,
+# so the GraphQL default drops a trailing /v3 instead of appending to it.
+GRAPHQL_ENDPOINT = os.environ.get(
+    "GITHUB_GRAPHQL_URL",
+    f"{API_BASE_URL.rstrip('/').removesuffix('/v3')}/graphql",
+)
 API_TIMEOUT = 30
 
 # Card Dimensions
@@ -23,8 +29,11 @@ USER_STATS_CARD_BASE_HEIGHT = 40
 DEFAULT_USER_STATS_CARD_WIDTH = 467
 RANK_CIRCLE_RADIUS = 40
 RANK_CIRCLE_STROKE_WIDTH = 6
-# The rim is drawn centred at cx=-10 relative to the group's transform origin
+# The rim is drawn centred at (cx, cy) = (-10, 8) relative to the group's transform origin
 RANK_CIRCLE_CX_OFFSET = -10
+RANK_CIRCLE_CY_OFFSET = 8
+# Full length of the progress arc; the percentile hides its share of it
+RANK_CIRCLE_CIRCUMFERENCE = 2 * math.pi * RANK_CIRCLE_RADIUS
 # Distance from the right card edge to the rank circle's transform origin.
 # The circle is positioned relative to the width, not at a fixed x, so a custom
 # --card-width cannot push it off the canvas (467 - 76.5 = the historic 390.5).
@@ -34,6 +43,10 @@ RANK_CIRCLE_Y_OFFSET = 47.5
 # than hand-computed so it cannot drift from the radius and stroke above. The
 # stat values must clear this, not merely the card edge.
 RANK_CIRCLE_RIM_LEFT_INSET = -RANK_CIRCLE_CX_OFFSET + RANK_CIRCLE_RADIUS + RANK_CIRCLE_STROKE_WIDTH / 2
+# Distance from the body origin to the bottom of the rim. A card with only a
+# few stats is shorter than this, so its height is floored to keep the ring whole.
+RANK_CIRCLE_BOTTOM = RANK_CIRCLE_Y_OFFSET + RANK_CIRCLE_CY_OFFSET + RANK_CIRCLE_RADIUS + RANK_CIRCLE_STROKE_WIDTH / 2
+RANK_CIRCLE_BOTTOM_PADDING = 15
 # Breathing room between the widest stat value and whatever follows it
 STAT_VALUE_RIGHT_GAP = 12
 STAT_VALUE_X_POSITION = 219.01

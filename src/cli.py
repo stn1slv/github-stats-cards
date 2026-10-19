@@ -14,14 +14,17 @@ from .core.config import (
     UserStatsCardConfig,
     UserStatsFetchConfig,
 )
-from .core.constants import MIN_CARD_WIDTH, VALID_CONTRIB_TYPES
+from .core.constants import MAXIMUM_LANGS_COUNT, MIN_CARD_WIDTH, VALID_CONTRIB_TYPES
 from .core.exceptions import FetchError, LanguageFetchError
 from .core.i18n import TRANSLATIONS
+from .core.utils import parse_list_arg
 from .github.fetcher import fetch_contributor_stats, fetch_user_stats
 from .github.langs_fetcher import fetch_top_languages
+from .rendering.colors import is_valid_gradient, is_valid_hex_color
 from .rendering.contrib import render_contrib_card
 from .rendering.langs import render_top_languages
-from .rendering.user_stats import render_user_stats_card
+from .rendering.themes import THEMES
+from .rendering.user_stats import STAT_KEYS, render_user_stats_card
 
 # Weighting presets for language ranking
 WEIGHTING_PRESETS = {
@@ -129,6 +132,47 @@ def _write_svg_file(svg: str, output: str) -> None:
     click.echo(f"✅ Generated {output_path}", err=True)
 
 
+# Choices come from THEMES so a typo is rejected instead of silently rendering the
+# default theme. The metavar keeps --help short; the error lists every theme.
+THEME_CHOICE = click.Choice(sorted(THEMES))
+
+
+def _validate_color(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
+    """Reject a color the renderer would otherwise replace with the theme color in silence."""
+    if value is None or is_valid_hex_color(value):
+        return value
+    raise click.BadParameter(f"'{value}' is not a hex color. Use 3, 4, 6 or 8 hex digits without '#'.")
+
+
+def _validate_bg_color(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
+    """Like _validate_color, but also accept a gradient: angle,color1,color2[,...]."""
+    if value is None or is_valid_hex_color(value) or is_valid_gradient(value.split(",")):
+        return value
+    raise click.BadParameter(
+        f"'{value}' is not a hex color or a gradient. Use hex digits without '#', "
+        "or a gradient such as 90,ff0000,00ff00 (whole-number angle, then two or more colors)."
+    )
+
+
+def _validate_stat_keys(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """Reject a --hide or --show key that matches no stat and would be dropped in silence."""
+    unknown = [key for key in parse_list_arg(value) if key not in STAT_KEYS]
+    if unknown:
+        raise click.BadParameter(f"Unknown stat '{unknown[0]}'. Allowed: {', '.join(STAT_KEYS)}")
+    return value
+
+
+def _echo_token_scope_hint() -> None:
+    """Explain the most common cause of a contribution-data failure in GitHub Actions."""
+    click.echo(
+        "⚠️ Note: this card needs a token that can read contribution data "
+        "(contributionsCollection), which the GitHub Actions default GITHUB_TOKEN cannot access.\n"
+        "Please use a Personal Access Token (PAT with 'read:user' scope) stored as a repository "
+        "secret and pass it via the `token` input.",
+        err=True,
+    )
+
+
 @click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
@@ -157,6 +201,8 @@ def cli() -> None:
 )
 @click.option(
     "--theme",
+    type=THEME_CHOICE,
+    metavar="THEME",
     default="default",
     help="Theme name (default, dark, radical, etc.)",
 )
@@ -183,45 +229,54 @@ def cli() -> None:
 @click.option(
     "--include-all-commits",
     is_flag=True,
-    help="Count all commits (not just current year)",
+    help="Count all commits (not just the last 12 months)",
 )
 @click.option(
     "--commits-year",
-    type=int,
+    # GitHub launched in 2008, so no earlier year can hold a contribution
+    type=click.IntRange(min=2008),
     help="Filter commits to specific year (e.g., 2023)",
 )
 @click.option(
     "--hide",
     default="",
+    callback=_validate_stat_keys,
     help="Comma-separated stats to hide (e.g., stars,prs)",
 )
 @click.option(
     "--show",
     default="",
+    callback=_validate_stat_keys,
     help="Comma-separated stats to show (e.g., repos, reviews, prs_merged, discussions_started, discussions_answered)",
 )
 @click.option(
     "--title-color",
+    callback=_validate_color,
     help="Custom title color (hex without #)",
 )
 @click.option(
     "--text-color",
+    callback=_validate_color,
     help="Custom text color (hex without #)",
 )
 @click.option(
     "--icon-color",
+    callback=_validate_color,
     help="Custom icon color (hex without #)",
 )
 @click.option(
     "--bg-color",
+    callback=_validate_bg_color,
     help="Custom background color (hex without # or gradient: angle,color1,color2)",
 )
 @click.option(
     "--border-color",
+    callback=_validate_color,
     help="Custom border color (hex without #)",
 )
 @click.option(
     "--ring-color",
+    callback=_validate_color,
     help="Custom rank ring color (hex without #)",
 )
 @click.option(
@@ -245,13 +300,16 @@ def cli() -> None:
 )
 @click.option(
     "--line-height",
-    type=int,
+    # Bounded: zero stacks every stat on one line and a negative value gives
+    # the card a negative height, which is invalid SVG.
+    type=click.IntRange(min=1),
     default=25,
     help="Line height between stats (default: 25)",
 )
 @click.option(
     "--border-radius",
-    type=float,
+    # A negative rx is invalid SVG
+    type=click.FloatRange(min=0.0),
     default=4.5,
     help="Border radius (default: 4.5)",
 )
@@ -404,13 +462,7 @@ def user_stats(
         if debug:
             raise
         if token.startswith("ghs_") or "Resource not accessible by integration" in str(e):
-            click.echo(
-                "⚠️ Note: the user-stats card needs a token that can read contribution data "
-                "(contributionsCollection), which the GitHub Actions default GITHUB_TOKEN cannot access.\n"
-                "Please use a Personal Access Token (PAT with 'read:user' scope) stored as a repository "
-                "secret and pass it via the `token` input.",
-                err=True,
-            )
+            _echo_token_scope_hint()
         sys.exit(1)
     except Exception as e:
         _abort(e, debug)
@@ -439,6 +491,8 @@ def user_stats(
 )
 @click.option(
     "--theme",
+    type=THEME_CHOICE,
+    metavar="THEME",
     default="default",
     help="Theme name (default, dark, radical, etc.)",
 )
@@ -465,8 +519,9 @@ def user_stats(
 )
 @click.option(
     "--langs-count",
-    type=int,
-    help="Number of languages to show (1-20)",
+    # Bounded like --limit: an out-of-range value used to be clamped in silence
+    type=click.IntRange(1, MAXIMUM_LANGS_COUNT),
+    help=f"Number of languages to show (1-{MAXIMUM_LANGS_COUNT})",
 )
 @click.option(
     "--hide",
@@ -504,18 +559,22 @@ def user_stats(
 )
 @click.option(
     "--title-color",
+    callback=_validate_color,
     help="Custom title color (hex without #)",
 )
 @click.option(
     "--text-color",
+    callback=_validate_color,
     help="Custom text color (hex without #)",
 )
 @click.option(
     "--bg-color",
+    callback=_validate_bg_color,
     help="Custom background color or gradient (hex or angle,color1,color2)",
 )
 @click.option(
     "--border-color",
+    callback=_validate_color,
     help="Custom border color (hex without #)",
 )
 @click.option(
@@ -524,7 +583,8 @@ def user_stats(
 )
 @click.option(
     "--border-radius",
-    type=float,
+    # A negative rx is invalid SVG
+    type=click.FloatRange(min=0.0),
     default=4.5,
     help="Border radius (default: 4.5)",
 )
@@ -707,6 +767,8 @@ def top_langs(
 )
 @click.option(
     "--theme",
+    type=THEME_CHOICE,
+    metavar="THEME",
     default="default",
     help="Theme name (default, dark, radical, etc.)",
 )
@@ -729,18 +791,22 @@ def top_langs(
 )
 @click.option(
     "--title-color",
+    callback=_validate_color,
     help="Custom title color (hex without #)",
 )
 @click.option(
     "--text-color",
+    callback=_validate_color,
     help="Custom text color (hex without #)",
 )
 @click.option(
     "--bg-color",
+    callback=_validate_bg_color,
     help="Custom background color (hex without # or gradient)",
 )
 @click.option(
     "--border-color",
+    callback=_validate_color,
     help="Custom border color (hex without #)",
 )
 @click.option(
@@ -749,7 +815,8 @@ def top_langs(
 )
 @click.option(
     "--border-radius",
-    type=float,
+    # A negative rx is invalid SVG
+    type=click.FloatRange(min=0.0),
     default=4.5,
     help="Border radius (default: 4.5)",
 )
@@ -870,6 +937,10 @@ def contrib(
         click.echo(f"❌ Error fetching data: {e}", err=True)
         if debug:
             raise
+        # A token that cannot read contribution data usually fails here, before
+        # any repository is counted, so the empty-result hint above never runs.
+        if token.startswith("ghs_") or "Resource not accessible by integration" in str(e):
+            _echo_token_scope_hint()
         sys.exit(1)
     except Exception as e:
         _abort(e, debug)

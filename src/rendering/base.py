@@ -12,6 +12,7 @@ from ..core.constants import (
     FONT_WEIGHT_RANK,
     FONT_WEIGHT_STAT,
     FONT_WEIGHT_STAT_BOLD,
+    RANK_CIRCLE_CIRCUMFERENCE,
     RANK_CIRCLE_STROKE_WIDTH,
 )
 from ..core.utils import encode_html
@@ -134,7 +135,7 @@ def render_card(
       }}
       .rank-circle {{
         stroke: {ring_color};
-        stroke-dasharray: 250;
+        stroke-dasharray: {RANK_CIRCLE_CIRCUMFERENCE:.2f};
         fill: none;
         stroke-width: {RANK_CIRCLE_STROKE_WIDTH};
         stroke-linecap: round;

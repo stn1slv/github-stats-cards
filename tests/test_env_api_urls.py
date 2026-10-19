@@ -1,7 +1,22 @@
 """Tests for environment variable API URL configuration."""
 
+import importlib
 import os
+from collections.abc import Iterator
 from unittest import mock
+
+import pytest
+
+from src.core import constants
+from src.github import fetcher
+
+
+@pytest.fixture(autouse=True)
+def _restore_url_constants() -> Iterator[None]:
+    """Reload the modules under the real environment, so no patched URL leaks into later tests."""
+    yield
+    importlib.reload(constants)
+    importlib.reload(fetcher)
 
 
 def test_default_api_urls():
@@ -30,8 +45,8 @@ def test_custom_api_url_env_var():
         importlib.reload(constants)
 
         assert custom_api_url == constants.API_BASE_URL
-        # GraphQL should use the custom base URL
-        assert f"{custom_api_url}/graphql" == constants.GRAPHQL_ENDPOINT
+        # GHES serves GraphQL at /api/graphql, not under the REST /api/v3 prefix
+        assert constants.GRAPHQL_ENDPOINT == "https://github.enterprise.com/api/graphql"
 
 
 def test_custom_graphql_url_env_var():
@@ -87,3 +102,15 @@ def test_fetcher_uses_api_base_url():
 
         # Now check that fetcher's API_BASE_URL matches constants
         assert fetcher.API_BASE_URL == constants.API_BASE_URL
+
+
+def test_custom_api_url_without_v3_suffix_appends_graphql():
+    """A base URL with no /v3 suffix (or a trailing slash) gets /graphql appended."""
+    with mock.patch.dict(os.environ, {"GITHUB_API_URL": "https://proxy.example.com/github/"}, clear=True):
+        import importlib
+
+        from src.core import constants
+
+        importlib.reload(constants)
+
+        assert constants.GRAPHQL_ENDPOINT == "https://proxy.example.com/github/graphql"

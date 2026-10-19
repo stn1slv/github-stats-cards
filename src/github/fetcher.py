@@ -274,7 +274,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
                 total_commits = search_data.get("total_count", total_commits)
             except APIError as e:
                 logger.warning(
-                    "All-commits search failed, falling back to this year's commit count: %s",
+                    "All-commits search failed, falling back to the last 12 months' commit count: %s",
                     e,
                 )
 
@@ -311,8 +311,17 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
                 disc_data = client.graphql_query(discussions_query, {"login": username})
                 disc_user = (disc_data.get("data") or {}).get("user") or {}
 
-                discussions_started = disc_user.get("repositoryDiscussions", {}).get("totalCount", 0)
-                discussions_answered = disc_user.get("repositoryDiscussionComments", {}).get("totalCount", 0)
+                # A 200 carrying GraphQL errors raises no APIError, so it needs its
+                # own warning or the counts below drop to zero in silence.
+                if disc_data.get("errors") or not disc_user:
+                    logger.warning(
+                        "Discussions query returned incomplete data, discussion counts may render as zero: %s",
+                        first_graphql_error(disc_data),
+                    )
+
+                # `or {}` rather than a .get default: a field present as null must fall back too
+                discussions_started = (disc_user.get("repositoryDiscussions") or {}).get("totalCount") or 0
+                discussions_answered = (disc_user.get("repositoryDiscussionComments") or {}).get("totalCount") or 0
             except APIError as e:
                 logger.warning(
                     "Discussions query failed, discussion counts render as zero: %s",
@@ -353,7 +362,9 @@ _REPO_DETAILS_FRAGMENT = """
     isPrivate
     owner {
       login
-      avatarUrl
+      # The card draws avatars at 20px; 40 keeps them sharp on HiDPI screens
+      # without embedding the full-size image in the SVG.
+      avatarUrl(size: 40)
     }
     stargazers {
       totalCount

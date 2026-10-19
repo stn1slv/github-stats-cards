@@ -1,11 +1,12 @@
 """Tests for contributor stats fetcher."""
 
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from src.core.config import ContribFetchConfig
-from src.core.exceptions import FetchError
+from src.core.exceptions import APIError, FetchError
 from src.github.fetcher import _build_contrib_query, fetch_contributor_stats
 
 
@@ -529,3 +530,21 @@ def test_fetch_contributor_stats_pr_state_filter_on_partial_payload(mock_client)
     assert stats["repos"][0]["name"] == "owner/repo"
     # Should count 2 (MERGED + OPEN), ignoring null, missing and CLOSED nodes
     assert stats["repos"][0]["prs"] == 2
+
+
+def test_contrib_query_requests_a_small_avatar():
+    """The card draws avatars at 20px; a full-size image bloats every embedded SVG."""
+    assert "avatarUrl(size: 40)" in _build_contrib_query(["commits"])
+
+
+def test_fetch_contributor_stats_warns_when_a_year_fails(mock_client, caplog):
+    """A failed year drops all of its contributions, so it must not be silent."""
+    years_response = {"data": {"user": {"contributionsCollection": {"contributionYears": [2024]}}}}
+    mock_client.async_graphql_query.side_effect = [years_response, APIError("timeout")]
+
+    with caplog.at_level(logging.WARNING, logger="src.github.fetcher"):
+        stats = fetch_contributor_stats(ContribFetchConfig(username="user", token="token"))
+
+    assert stats["repos"] == []
+    assert "Contribution fetch failed for 2024" in caplog.text
+    assert "timeout" in caplog.text

@@ -10,7 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from src.cli import cli
-from src.core.exceptions import FetchError
+from src.core.exceptions import FetchError, LanguageFetchError
 
 ACTION_YML = Path(__file__).resolve().parents[1] / "action.yml"
 
@@ -216,8 +216,11 @@ def test_action_yml_installs_from_the_action_path_and_never_self_checks_out():
     """
     action = ACTION_YML.read_text()
 
-    # The action must install from the path the runner resolved
-    assert 'uv pip install --system -e "$GITHUB_ACTION_PATH"' in action
+    # The action must install from the path the runner resolved, with the
+    # dependencies pinned by the committed lockfile rather than re-resolved
+    assert 'uv export --project "$GITHUB_ACTION_PATH" --frozen' in action
+    assert 'uv pip install --system -r "$RUNNER_TEMP/github-stats-card-requirements.txt"' in action
+    assert 'uv pip install --system --no-deps "$GITHUB_ACTION_PATH"' in action
 
     # And must not check out its own repository under any spelling
     executable = [ln for ln in action.splitlines() if not ln.strip().startswith("#")]
@@ -459,3 +462,127 @@ def test_package_logger_name_survives_being_run_as_a_module():
 
     # And it must actually be an ancestor of the loggers the fetchers use
     assert fetcher.logger.name.startswith(f"{cli_module._PACKAGE_LOGGER_NAME}.")
+
+
+@pytest.mark.parametrize(
+    ("command", "extra_args", "expected"),
+    [
+        # Each of these used to be accepted and silently replaced by a default
+        ("user-stats", ["--theme", "drak"], "--theme"),
+        ("top-langs", ["--theme", "drak"], "--theme"),
+        ("contrib", ["--theme", "drak"], "--theme"),
+        ("user-stats", ["--title-color", "#ff0000"], "without '#'"),
+        ("contrib", ["--border-color", "nothex"], "without '#'"),
+        ("top-langs", ["--bg-color", "foo,ff0000,00ff00"], "gradient"),
+        ("user-stats", ["--hide", "stars,stras"], "Unknown stat 'stras'"),
+        ("user-stats", ["--show", "repo"], "Unknown stat 'repo'"),
+        ("top-langs", ["--langs-count", "21"], "--langs-count"),
+        ("top-langs", ["--langs-count", "0"], "--langs-count"),
+        ("user-stats", ["--line-height", "0"], "--line-height"),
+        ("contrib", ["--border-radius", "-1"], "--border-radius"),
+        ("user-stats", ["--commits-year", "1999"], "--commits-year"),
+    ],
+)
+def test_cli_rejects_input_it_would_otherwise_ignore(command: str, extra_args: list[str], expected: str):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_user_stats") as fetch_stats,
+        patch("src.cli.fetch_top_languages") as fetch_langs,
+        patch("src.cli.fetch_contributor_stats") as fetch_contrib,
+    ):
+        result = runner.invoke(cli, [command, "-u", "u", "-t", "t", "-o", "card.svg", *extra_args])
+
+    assert result.exit_code == 2
+    assert expected in result.stderr
+    # Rejected before any API call is made
+    assert not fetch_stats.called
+    assert not fetch_langs.called
+    assert not fetch_contrib.called
+
+
+def test_cli_accepts_valid_colors_gradients_themes_and_stat_keys(tmp_path: Path):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_user_stats") as mock_fetch,
+        patch("src.cli.render_user_stats_card") as mock_render,
+    ):
+        mock_fetch.return_value = {"name": "User", "login": "user"}
+        mock_render.return_value = "<svg/>"
+
+        result = runner.invoke(
+            cli,
+            [
+                *("user-stats", "-u", "u", "-t", "t", "-o", str(tmp_path / "card.svg")),
+                *("--theme", "dark", "--title-color", "fff", "--bg-color", "-45,ff0000,00ff00"),
+                *("--hide", "stars", "--show", "repos,prs_merged_percentage"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.stderr
+    config = mock_render.call_args[0][1]
+    assert config.theme == "dark"
+    assert config.bg_color == "-45,ff0000,00ff00"
+    assert config.show == ["repos", "prs_merged_percentage"]
+
+
+def test_top_langs_command_reports_a_language_fetch_error():
+    runner = CliRunner()
+    with patch("src.cli.fetch_top_languages", side_effect=LanguageFetchError("rate limited")):
+        result = runner.invoke(cli, ["top-langs", "-u", "u", "-t", "t", "-o", "langs.svg"])
+
+    assert result.exit_code == 1
+    assert "❌ Error fetching language data: rate limited" in result.stderr
+
+
+@pytest.mark.parametrize("command", ["top-langs", "contrib"])
+def test_command_reports_an_unexpected_error_without_a_traceback(command: str):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_top_languages", side_effect=RuntimeError("kaboom")),
+        patch("src.cli.fetch_contributor_stats", side_effect=RuntimeError("kaboom")),
+    ):
+        result = runner.invoke(cli, [command, "-u", "u", "-t", "t", "-o", "card.svg"])
+
+    assert result.exit_code == 1
+    assert "❌ Unexpected error: kaboom" in result.stderr
+    assert "--debug" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("token", "message", "expect_hint"),
+    [
+        ("ghs_dummy", "No contribution data available", True),
+        ("ghp_dummy", "GraphQL error: Resource not accessible by integration", True),
+        ("ghp_dummy", "GraphQL error: Something else", False),
+    ],
+)
+def test_contrib_command_fetch_error_gives_the_token_scope_hint(token: str, message: str, expect_hint: bool):
+    """A restricted token fails before any repository is counted, so the empty-result hint never ran."""
+    runner = CliRunner()
+    with patch("src.cli.fetch_contributor_stats", side_effect=FetchError(message)):
+        result = runner.invoke(cli, ["contrib", "-u", "u", "-t", token, "-o", "contrib.svg"])
+
+    assert result.exit_code == 1
+    assert f"❌ Error fetching data: {message}" in result.stderr
+    assert ("read:user" in result.stderr) is expect_hint
+
+
+def test_action_yml_passes_the_token_through_the_environment_only():
+    """An argv token is visible to every process that can list the runner's commands."""
+    action = ACTION_YML.read_text()
+
+    assert "GITHUB_TOKEN: ${{ inputs.token }}" in action
+    assert '"$TOKEN"' not in action
+    assert not re.search(r"ARGS=\([^)]*-t\b", action)
+    # The CLI must still be able to pick the token up from that variable
+    for command in ("user-stats", "top-langs", "contrib"):
+        token = next(p for p in cli.commands[command].params if p.name == "token")
+        assert token.envvar == "GITHUB_TOKEN"
+
+
+def test_action_yml_reads_boolean_inputs_case_insensitively():
+    """'True' used to be read as false, because only the exact string 'true' matched."""
+    action = ACTION_YML.read_text()
+
+    assert not re.search(r'\[ "\$[A-Z_]+" = "true" \]', action)
+    assert len(re.findall(r'is_true "\$[A-Z_]+" &&', action)) == 7
