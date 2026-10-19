@@ -304,3 +304,10 @@ def test_hidden_rank_does_not_floor_the_card_height(sample_stats):
 def test_stat_keys_match_the_stat_definitions(sample_stats):
     """--hide and --show are validated against STAT_KEYS, so it must not drift."""
     assert set(STAT_KEYS) == set(_get_stat_definitions(sample_stats, "en"))
+
+
+def test_rank_ring_dash_array_matches_its_circumference(sample_stats):
+    """A dash shorter than the circle left a gap at the top even for the best rank."""
+    svg = render_user_stats_card(sample_stats, UserStatsCardConfig())
+
+    assert f"stroke-dasharray: {RANK_CIRCLE_CIRCUMFERENCE:.2f};" in svg

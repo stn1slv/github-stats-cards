@@ -24,7 +24,7 @@ These inputs used to be replaced by a default without a message. They now fail w
 - With `GITHUB_API_URL=https://host/api/v3` and no `GITHUB_GRAPHQL_URL`, GraphQL requests now go to `https://host/api/graphql`, where GitHub Enterprise Server serves them. They used to go to `/api/v3/graphql`.
 - Contributor avatars are requested at 40px instead of full size, which makes the `contrib` SVG much smaller, and JPEG avatars are no longer labelled as PNG.
 - Long repository names on the `contrib` card are shortened with "…" instead of running under the rank badge.
-- Diagonal gradient angles render as diagonals. They used to snap to the nearest horizontal or vertical direction.
+- Diagonal gradient angles no longer snap to the nearest horizontal or vertical direction. The angle is measured on the card's box, so `45` runs corner to corner on any card shape, like `to bottom right` in CSS rather than CSS `45deg`.
 - The `contrib` card now shows the PAT scope hint when the fetch fails, not only when it returns no repositories. A restricted token usually fails before any repository is counted.
 
 ### Changed
@@ -32,6 +32,10 @@ These inputs used to be replaced by a default without a message. They now fail w
 - The action installs its dependencies from `uv.lock`, with hash checking. A pinned tag used to install whatever `httpx` and `click` versions were newest on the day of the run.
 - The action passes the token to the CLI in the `GITHUB_TOKEN` environment variable instead of the `-t` argument, so it does not appear in the runner's process list.
 - The action's boolean inputs accept any letter case, so `True` and `TRUE` work. Anything other than lowercase `true` used to be read as `false`.
+
+### Removed
+
+- The `exclude_repo`, `size_weight` and `count_weight` fields of `LangsCardConfig`. The renderer never read them; code that builds the config directly should set them on `LangsFetchConfig`, which the fetcher uses.
 
 ## [1.4.1] - 2026-09-26
 

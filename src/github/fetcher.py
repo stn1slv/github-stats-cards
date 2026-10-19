@@ -320,8 +320,8 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
                     )
 
                 # `or {}` rather than a .get default: a field present as null must fall back too
-                discussions_started = (disc_user.get("repositoryDiscussions") or {}).get("totalCount", 0)
-                discussions_answered = (disc_user.get("repositoryDiscussionComments") or {}).get("totalCount", 0)
+                discussions_started = (disc_user.get("repositoryDiscussions") or {}).get("totalCount") or 0
+                discussions_answered = (disc_user.get("repositoryDiscussionComments") or {}).get("totalCount") or 0
             except APIError as e:
                 logger.warning(
                     "Discussions query failed, discussion counts render as zero: %s",

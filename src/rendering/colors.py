@@ -34,8 +34,12 @@ def is_valid_gradient(colors: list[str]) -> bool:
 
 
 def _is_angle(value: str) -> bool:
-    """Check that a gradient angle is a whole number of degrees, optionally negative."""
-    return bool(re.fullmatch(r"-?\d+", value))
+    """Check that a gradient angle is a whole number of degrees, optionally negative.
+
+    Bounded to six digits: int() refuses strings past Python's digit limit, so an
+    absurdly long angle would otherwise pass validation and crash the render.
+    """
+    return bool(re.fullmatch(r"-?\d{1,6}", value))
 
 
 def parse_color(color: str | None, fallback: str) -> str | list[str]:
@@ -168,11 +172,17 @@ def format_gradient(colors: list[str]) -> tuple[str, str]:
     color_stops = colors[1:]
 
     # Convert the angle to a gradient vector through the card centre: 0 runs left
-    # to right and 90 top to bottom, and every angle in between is honoured.
+    # to right and 90 top to bottom. The angle is measured on the card's bounding
+    # box, not on screen, so 45 always runs corner to corner whatever the card's
+    # shape. The half-length grows with the angle so the end lines touch the far
+    # corners, as a CSS gradient's do, instead of leaving flat-colored ends.
     angle_num = int(angle) % 360 if _is_angle(angle) else 0
     radians = math.radians(angle_num)
-    dx, dy = 50 * math.cos(radians), 50 * math.sin(radians)
-    x1, y1, x2, y2 = (f"{round(v, 2):g}%" for v in (50 - dx, 50 - dy, 50 + dx, 50 + dy))
+    cos, sin = math.cos(radians), math.sin(radians)
+    half_length = 50 * (abs(cos) + abs(sin))
+    dx, dy = half_length * cos, half_length * sin
+    # `+ 0.0` turns a rounded -0.0 (float noise at 180 and 270) into 0.0
+    x1, y1, x2, y2 = (f"{round(v, 2) + 0.0:g}%" for v in (50 - dx, 50 - dy, 50 + dx, 50 + dy))
 
     stops = []
     step = 100 / (len(color_stops) - 1) if len(color_stops) > 1 else 100

@@ -340,3 +340,18 @@ def test_fetch_user_stats_warns_when_repository_pagination_fails(mock_client, ca
     assert stats["totalStars"] == 7
     assert "Repository pagination failed" in caplog.text
     assert "boom" in caplog.text
+
+
+def test_fetch_user_stats_treats_a_null_discussion_count_as_zero(mock_client):
+    """A null totalCount used to reach k_formatter as None and raise TypeError."""
+    disc_response = {
+        "data": {"user": {"repositoryDiscussions": {"totalCount": None}, "repositoryDiscussionComments": {}}},
+    }
+    mock_client.graphql_query.side_effect = [_user_payload(), disc_response]
+    mock_client.rest_get.return_value = {"total_count": 0}
+
+    config = UserStatsFetchConfig(username="user", token="t", show=["discussions_started", "discussions_answered"])
+    stats = fetch_user_stats(config)
+
+    assert stats["discussionsStarted"] == 0
+    assert stats["discussionsAnswered"] == 0
