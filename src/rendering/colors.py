@@ -1,5 +1,6 @@
 """Color parsing and validation utilities."""
 
+import math
 import re
 
 from .themes import THEMES
@@ -29,7 +30,12 @@ def is_valid_gradient(colors: list[str]) -> bool:
     Returns:
         True if valid gradient specification
     """
-    return len(colors) > 2 and all(is_valid_hex_color(c) for c in colors[1:])
+    return len(colors) > 2 and _is_angle(colors[0]) and all(is_valid_hex_color(c) for c in colors[1:])
+
+
+def _is_angle(value: str) -> bool:
+    """Check that a gradient angle is a whole number of degrees, optionally negative."""
+    return bool(re.fullmatch(r"-?\d+", value))
 
 
 def parse_color(color: str | None, fallback: str) -> str | list[str]:
@@ -161,22 +167,12 @@ def format_gradient(colors: list[str]) -> tuple[str, str]:
     angle = colors[0]
     color_stops = colors[1:]
 
-    # Convert angle to x1, y1, x2, y2 for linearGradient
-    # Simplified: just use horizontal or vertical
-    angle_num = int(angle) if angle.isdigit() else 0
-
-    if 45 <= angle_num < 135:
-        # Vertical
-        x1, y1, x2, y2 = "0%", "0%", "0%", "100%"
-    elif 135 <= angle_num < 225:
-        # Horizontal (reversed)
-        x1, y1, x2, y2 = "100%", "0%", "0%", "0%"
-    elif 225 <= angle_num < 315:
-        # Vertical (reversed)
-        x1, y1, x2, y2 = "0%", "100%", "0%", "0%"
-    else:
-        # Horizontal (default)
-        x1, y1, x2, y2 = "0%", "0%", "100%", "0%"
+    # Convert the angle to a gradient vector through the card centre: 0 runs left
+    # to right and 90 top to bottom, and every angle in between is honoured.
+    angle_num = int(angle) % 360 if _is_angle(angle) else 0
+    radians = math.radians(angle_num)
+    dx, dy = 50 * math.cos(radians), 50 * math.sin(radians)
+    x1, y1, x2, y2 = (f"{round(v, 2):g}%" for v in (50 - dx, 50 - dy, 50 + dx, 50 + dy))
 
     stops = []
     step = 100 / (len(color_stops) - 1) if len(color_stops) > 1 else 100

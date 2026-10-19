@@ -1,11 +1,40 @@
 """Contributor card renderer."""
 
 from ..core.config import ContribCardConfig
-from ..core.constants import MIN_CARD_WIDTH
-from ..core.utils import encode_html
+from ..core.constants import FONT_SIZE_STAT, MIN_CARD_WIDTH
+from ..core.utils import encode_html, measure_text
 from ..github.fetcher import ContributorStats
 from .base import render_card
 from .colors import get_card_colors, resolve_color
+
+# Leading base64 characters of each image format's magic bytes. GitHub serves
+# uploaded avatars as JPEG and generated ones as PNG, so the type is detected
+# rather than assumed.
+_IMAGE_MIME_BY_B64_PREFIX = {
+    "iVBORw0KGgo": "image/png",
+    "/9j/": "image/jpeg",
+    "R0lGOD": "image/gif",
+    "UklGR": "image/webp",
+}
+
+# Gap between the end of a repository name and the left edge of the rank badge
+_NAME_BADGE_GAP = 8
+
+
+def _image_mime(avatar_b64: str) -> str:
+    """Detect an embedded avatar's media type from its base64 prefix, defaulting to PNG."""
+    for prefix, mime in _IMAGE_MIME_BY_B64_PREFIX.items():
+        if avatar_b64.startswith(prefix):
+            return mime
+    return "image/png"
+
+
+def _fit_name(name: str, max_width: float) -> str:
+    """Shorten a repository name with an ellipsis so it ends before the rank badge."""
+    if measure_text(name, FONT_SIZE_STAT) <= max_width:
+        return name
+    max_chars = max(1, int(max_width / measure_text("x", FONT_SIZE_STAT)) - 1)
+    return f"{name[:max_chars]}…"
 
 
 def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> str:
@@ -66,7 +95,7 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
                 # Use embedded base64 image
                 body.append(f"""
                 <image x="0" y="7.5" width="20" height="20" clip-path="url(#avatar-clip)"
-                       href="data:image/png;base64,{repo["avatar_b64"]}" />
+                       href="data:{_image_mime(repo["avatar_b64"])};base64,{repo["avatar_b64"]}" />
                 """)
             else:
                 # Fallback circle
@@ -74,17 +103,19 @@ def render_contrib_card(stats: ContributorStats, config: ContribCardConfig) -> s
                 <circle cx="10" cy="17.5" r="10" fill="{resolve_color(colors["icon_color"])}" opacity="0.5" />
                 """)
 
-            # 2. Repo Name (centered vertically: baseline at ~22)
+            # 3. Rank Level position (right aligned in a circle). The badge circle is
+            # centred at x=10 with r=12, so its left edge sits 2px before right_edge.
+            right_edge = card_width - 75
+            rank = repo["rank_level"]
+
+            # 2. Repo Name (centered vertically: baseline at ~22), shortened so a long
+            # name cannot run underneath the rank badge
             full_name = repo["name"]
             display_name = full_name.split("/")[-1] if "/" in full_name else full_name
-            name = encode_html(display_name)
+            name = encode_html(_fit_name(display_name, right_edge - 2 - _NAME_BADGE_GAP - 30))
             body.append(f"""
             <text x="30" y="22" class="stat bold">{name}</text>
             """)
-
-            # 3. Rank Level (right aligned in a circle)
-            right_edge = card_width - 75
-            rank = repo["rank_level"]
 
             # Use ring color from theme or fallback to title color. `or` rather
             # than a .get default: a present-but-None value must fall back too.

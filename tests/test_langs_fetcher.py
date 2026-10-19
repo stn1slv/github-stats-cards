@@ -81,11 +81,11 @@ def test_fetch_top_languages_exclude_repos(MockClient):
     MockClient.return_value.__exit__.return_value = False
     nodes = [
         {
-            "name": "repo1",
+            "nameWithOwner": "testuser/repo1",
             "languages": {"edges": [{"size": 100, "node": {"name": "Python"}}]},
         },
         {
-            "name": "repo2",
+            "nameWithOwner": "testuser/repo2",
             "languages": {"edges": [{"size": 200, "node": {"name": "JavaScript"}}]},
         },
     ]
@@ -97,6 +97,41 @@ def test_fetch_top_languages_exclude_repos(MockClient):
     assert len(result) == 1
     assert "Python" in result
     assert "JavaScript" not in result
+
+
+@patch("src.github.langs_fetcher.GitHubClient")
+def test_fetch_top_languages_excludes_an_owner_qualified_pattern(MockClient):
+    """`owner/repo` used to be matched against the bare name and never excluded anything."""
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
+    MockClient.return_value.__exit__.return_value = False
+    nodes = [
+        {"nameWithOwner": "TestUser/repo1", "languages": {"edges": [{"size": 100, "node": {"name": "Python"}}]}},
+        {"nameWithOwner": "TestUser/repo2", "languages": {"edges": [{"size": 200, "node": {"name": "Go"}}]}},
+    ]
+    MockClient.return_value.graphql_query.return_value = _make_repos_response(nodes)
+
+    config = LangsFetchConfig(username="testuser", token="testtoken", exclude_repo=["testuser/repo2"])
+    result = fetch_top_languages(config)
+
+    assert list(result) == ["Python"]
+
+
+@patch("src.github.langs_fetcher.GitHubClient")
+def test_fetch_top_languages_tolerates_null_fields_in_a_partial_payload(MockClient):
+    """A partial response carries nulls where a .get default does not apply."""
+    MockClient.return_value.__enter__.return_value = MockClient.return_value
+    MockClient.return_value.__exit__.return_value = False
+    nodes = [
+        None,
+        {"nameWithOwner": "testuser/empty", "languages": None},
+        {"nameWithOwner": "testuser/repo1", "languages": {"edges": [None, {"size": None, "node": None}]}},
+        {"nameWithOwner": "testuser/repo2", "languages": {"edges": [{"size": 50, "node": {"name": "Rust"}}]}},
+    ]
+    MockClient.return_value.graphql_query.return_value = _make_repos_response(nodes)
+
+    result = fetch_top_languages(LangsFetchConfig(username="testuser", token="testtoken"))
+
+    assert list(result) == ["Rust"]
 
 
 @patch("src.github.langs_fetcher.GitHubClient")

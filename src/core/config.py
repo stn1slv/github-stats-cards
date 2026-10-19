@@ -107,11 +107,6 @@ class LangsCardConfig(CardStyleConfig):
 
     # Language options
     langs_count: int | None = None
-    exclude_repo: list[str] = field(default_factory=list)
-
-    # Weighting options
-    size_weight: float = 1.0
-    count_weight: float = 0.0
 
     # Display options
     stats_format: str = "percentages"  # "percentages" or "bytes"

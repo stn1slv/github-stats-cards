@@ -10,7 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from src.cli import cli
-from src.core.exceptions import FetchError
+from src.core.exceptions import FetchError, LanguageFetchError
 
 ACTION_YML = Path(__file__).resolve().parents[1] / "action.yml"
 
@@ -459,3 +459,45 @@ def test_package_logger_name_survives_being_run_as_a_module():
 
     # And it must actually be an ancestor of the loggers the fetchers use
     assert fetcher.logger.name.startswith(f"{cli_module._PACKAGE_LOGGER_NAME}.")
+
+
+def test_top_langs_command_reports_a_language_fetch_error():
+    runner = CliRunner()
+    with patch("src.cli.fetch_top_languages", side_effect=LanguageFetchError("rate limited")):
+        result = runner.invoke(cli, ["top-langs", "-u", "u", "-t", "t", "-o", "langs.svg"])
+
+    assert result.exit_code == 1
+    assert "❌ Error fetching language data: rate limited" in result.stderr
+
+
+@pytest.mark.parametrize("command", ["top-langs", "contrib"])
+def test_command_reports_an_unexpected_error_without_a_traceback(command: str):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_top_languages", side_effect=RuntimeError("kaboom")),
+        patch("src.cli.fetch_contributor_stats", side_effect=RuntimeError("kaboom")),
+    ):
+        result = runner.invoke(cli, [command, "-u", "u", "-t", "t", "-o", "card.svg"])
+
+    assert result.exit_code == 1
+    assert "❌ Unexpected error: kaboom" in result.stderr
+    assert "--debug" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("token", "message", "expect_hint"),
+    [
+        ("ghs_dummy", "No contribution data available", True),
+        ("ghp_dummy", "GraphQL error: Resource not accessible by integration", True),
+        ("ghp_dummy", "GraphQL error: Something else", False),
+    ],
+)
+def test_contrib_command_fetch_error_gives_the_token_scope_hint(token: str, message: str, expect_hint: bool):
+    """A restricted token fails before any repository is counted, so the empty-result hint never ran."""
+    runner = CliRunner()
+    with patch("src.cli.fetch_contributor_stats", side_effect=FetchError(message)):
+        result = runner.invoke(cli, ["contrib", "-u", "u", "-t", token, "-o", "contrib.svg"])
+
+    assert result.exit_code == 1
+    assert f"❌ Error fetching data: {message}" in result.stderr
+    assert ("read:user" in result.stderr) is expect_hint

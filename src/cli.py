@@ -129,6 +129,17 @@ def _write_svg_file(svg: str, output: str) -> None:
     click.echo(f"✅ Generated {output_path}", err=True)
 
 
+def _echo_token_scope_hint() -> None:
+    """Explain the most common cause of a contribution-data failure in GitHub Actions."""
+    click.echo(
+        "⚠️ Note: this card needs a token that can read contribution data "
+        "(contributionsCollection), which the GitHub Actions default GITHUB_TOKEN cannot access.\n"
+        "Please use a Personal Access Token (PAT with 'read:user' scope) stored as a repository "
+        "secret and pass it via the `token` input.",
+        err=True,
+    )
+
+
 @click.group(cls=AliasGroup)
 def cli() -> None:
     """GitHub Stats Card Generator - Create beautiful SVG stats cards for your GitHub profile."""
@@ -404,13 +415,7 @@ def user_stats(
         if debug:
             raise
         if token.startswith("ghs_") or "Resource not accessible by integration" in str(e):
-            click.echo(
-                "⚠️ Note: the user-stats card needs a token that can read contribution data "
-                "(contributionsCollection), which the GitHub Actions default GITHUB_TOKEN cannot access.\n"
-                "Please use a Personal Access Token (PAT with 'read:user' scope) stored as a repository "
-                "secret and pass it via the `token` input.",
-                err=True,
-            )
+            _echo_token_scope_hint()
         sys.exit(1)
     except Exception as e:
         _abort(e, debug)
@@ -870,6 +875,10 @@ def contrib(
         click.echo(f"❌ Error fetching data: {e}", err=True)
         if debug:
             raise
+        # A token that cannot read contribution data usually fails here, before
+        # any repository is counted, so the empty-result hint above never runs.
+        if token.startswith("ghs_") or "Resource not accessible by integration" in str(e):
+            _echo_token_scope_hint()
         sys.exit(1)
     except Exception as e:
         _abort(e, debug)

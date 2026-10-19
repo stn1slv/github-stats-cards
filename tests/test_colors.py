@@ -15,11 +15,15 @@ from src.rendering.colors import (
 @pytest.mark.parametrize(
     ("colors", "expected_attrs"),
     [
-        (["0", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
-        (["90", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "0%", "y2": "100%"}),
-        (["180", "ff0000", "00ff00"], {"x1": "100%", "y1": "0%", "x2": "0%", "y2": "0%"}),
-        (["270", "ff0000", "00ff00"], {"x1": "0%", "y1": "100%", "x2": "0%", "y2": "0%"}),
-        (["not_a_number", "ff0000", "00ff00"], {"x1": "0%", "y1": "0%", "x2": "100%", "y2": "0%"}),
+        (["0", "ff0000", "00ff00"], {"x1": "0%", "y1": "50%", "x2": "100%", "y2": "50%"}),
+        (["90", "ff0000", "00ff00"], {"x1": "50%", "y1": "0%", "x2": "50%", "y2": "100%"}),
+        (["180", "ff0000", "00ff00"], {"x1": "100%", "y1": "50%", "x2": "0%", "y2": "50%"}),
+        (["270", "ff0000", "00ff00"], {"x1": "50%", "y1": "100%", "x2": "50%", "y2": "0%"}),
+        # Diagonals used to snap to the nearest axis
+        (["45", "ff0000", "00ff00"], {"x1": "14.64%", "y1": "14.64%", "x2": "85.36%", "y2": "85.36%"}),
+        # Negative angles used to fall back to 0
+        (["-90", "ff0000", "00ff00"], {"x1": "50%", "y1": "100%", "x2": "50%", "y2": "0%"}),
+        (["not_a_number", "ff0000", "00ff00"], {"x1": "0%", "y1": "50%", "x2": "100%", "y2": "50%"}),
     ],
 )
 def test_format_gradient(colors: list[str], expected_attrs: dict[str, str]):
@@ -53,6 +57,9 @@ def test_is_valid_hex_color(color: str, expected: bool):
         (["90", "ff0000", "00ff00"], True),
         (["90", "ff0000"], False),
         (["90", "gggggg", "00ff00"], False),
+        (["-45", "ff0000", "00ff00"], True),
+        (["foo", "ff0000", "00ff00"], False),
+        (["4.5", "ff0000", "00ff00"], False),
     ],
 )
 def test_is_valid_gradient(parts: list[str], expected: bool):

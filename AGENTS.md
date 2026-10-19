@@ -145,7 +145,8 @@ The project uses `uv` for all lifecycle tasks.
 ### Token Scope Warning on Empty Contrib Results (2026-08-09)
 - **Decision:** When the `contrib` card returns zero repositories and the token starts with `ghs_`, the CLI prints a stderr hint directing the user to a PAT with `read:user` scope. Keep this behaviour; it is deliberate, not leftover debugging.
 - **Rationale:** The Actions default `GITHUB_TOKEN` cannot read cross-repository contribution breakdowns, so the card silently renders empty. Without the hint the failure looks like "the user has no contributions" rather than a scope problem, which was the single most common source of confusion.
-- **Gotcha:** The hint is keyed off the `ghs_` prefix, so it never fires for a PAT. It writes to stderr so the SVG on stdout stays clean. Surfaced by `/speckit-converge` as unrequested code (T029) and justified here rather than removed.
+- **Gotcha:** The empty-result hint is keyed off the `ghs_` prefix, so it never fires for a PAT. It writes to stderr so the SVG on stdout stays clean. Surfaced by `/speckit-converge` as unrequested code (T029) and justified here rather than removed.
+- **Gotcha:** A restricted token usually fails with a `FetchError` before any repository is counted, so the empty-result hint alone never ran. The `contrib` `FetchError` handler prints the same hint as `user-stats` (2026-10-19): on a `ghs_` token, or on any token when the error says "Resource not accessible by integration".
 
 ### `resolve_color` is the only place a gradient collapses (2026-08-16)
 - **Decision:** `parse_color` returns a `list` for a gradient spec, and only the card background renders it as a real `<linearGradient>`. Every other colour slot (title, text, icon, border, ring) must pass through `rendering.colors.resolve_color`, which returns the first colour stop with a `#` prefix.
