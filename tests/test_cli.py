@@ -461,6 +461,67 @@ def test_package_logger_name_survives_being_run_as_a_module():
     assert fetcher.logger.name.startswith(f"{cli_module._PACKAGE_LOGGER_NAME}.")
 
 
+@pytest.mark.parametrize(
+    ("command", "extra_args", "expected"),
+    [
+        # Each of these used to be accepted and silently replaced by a default
+        ("user-stats", ["--theme", "drak"], "--theme"),
+        ("top-langs", ["--theme", "drak"], "--theme"),
+        ("contrib", ["--theme", "drak"], "--theme"),
+        ("user-stats", ["--title-color", "#ff0000"], "without '#'"),
+        ("contrib", ["--border-color", "nothex"], "without '#'"),
+        ("top-langs", ["--bg-color", "foo,ff0000,00ff00"], "gradient"),
+        ("user-stats", ["--hide", "stars,stras"], "Unknown stat 'stras'"),
+        ("user-stats", ["--show", "repo"], "Unknown stat 'repo'"),
+        ("top-langs", ["--langs-count", "21"], "--langs-count"),
+        ("top-langs", ["--langs-count", "0"], "--langs-count"),
+        ("user-stats", ["--line-height", "0"], "--line-height"),
+        ("contrib", ["--border-radius", "-1"], "--border-radius"),
+        ("user-stats", ["--commits-year", "1999"], "--commits-year"),
+    ],
+)
+def test_cli_rejects_input_it_would_otherwise_ignore(command: str, extra_args: list[str], expected: str):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_user_stats") as fetch_stats,
+        patch("src.cli.fetch_top_languages") as fetch_langs,
+        patch("src.cli.fetch_contributor_stats") as fetch_contrib,
+    ):
+        result = runner.invoke(cli, [command, "-u", "u", "-t", "t", "-o", "card.svg", *extra_args])
+
+    assert result.exit_code == 2
+    assert expected in result.stderr
+    # Rejected before any API call is made
+    assert not fetch_stats.called
+    assert not fetch_langs.called
+    assert not fetch_contrib.called
+
+
+def test_cli_accepts_valid_colors_gradients_themes_and_stat_keys(tmp_path: Path):
+    runner = CliRunner()
+    with (
+        patch("src.cli.fetch_user_stats") as mock_fetch,
+        patch("src.cli.render_user_stats_card") as mock_render,
+    ):
+        mock_fetch.return_value = {"name": "User", "login": "user"}
+        mock_render.return_value = "<svg/>"
+
+        result = runner.invoke(
+            cli,
+            [
+                *("user-stats", "-u", "u", "-t", "t", "-o", str(tmp_path / "card.svg")),
+                *("--theme", "dark", "--title-color", "fff", "--bg-color", "-45,ff0000,00ff00"),
+                *("--hide", "stars", "--show", "repos,prs_merged_percentage"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.stderr
+    config = mock_render.call_args[0][1]
+    assert config.theme == "dark"
+    assert config.bg_color == "-45,ff0000,00ff00"
+    assert config.show == ["repos", "prs_merged_percentage"]
+
+
 def test_top_langs_command_reports_a_language_fetch_error():
     runner = CliRunner()
     with patch("src.cli.fetch_top_languages", side_effect=LanguageFetchError("rate limited")):
