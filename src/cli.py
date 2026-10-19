@@ -229,7 +229,7 @@ def cli() -> None:
 @click.option(
     "--include-all-commits",
     is_flag=True,
-    help="Count all commits (not just current year)",
+    help="Count all commits (not just the last 12 months)",
 )
 @click.option(
     "--commits-year",

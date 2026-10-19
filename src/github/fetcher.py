@@ -274,7 +274,7 @@ def fetch_user_stats(config: UserStatsFetchConfig) -> UserStats:
                 total_commits = search_data.get("total_count", total_commits)
             except APIError as e:
                 logger.warning(
-                    "All-commits search failed, falling back to this year's commit count: %s",
+                    "All-commits search failed, falling back to the last 12 months' commit count: %s",
                     e,
                 )
 

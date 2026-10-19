@@ -56,7 +56,7 @@ inputs:
     default: 'default'
   
   include-all-commits:
-    description: 'Include all commits, not just current year (user-stats card only)'
+    description: 'Include all commits, not just the last 12 months (user-stats card only)'
     required: false
     default: 'false'
   
@@ -102,7 +102,7 @@ inputs:
     default: ''
   
   exclude-repo:
-    description: 'Comma-separated repos to exclude (top-langs only)'
+    description: 'Comma-separated repos to exclude (top-langs and contrib)'
     required: false
     default: ''
   

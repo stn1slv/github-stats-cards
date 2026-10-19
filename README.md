@@ -5,7 +5,7 @@ A Python-based GitHub Action and CLI tool that generates beautiful, high-quality
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-GitHub_Action-blue.svg?logo=github&style=flat)](https://github.com/marketplace/actions/github-stats-cards)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-273%20passed-success.svg)](#testing)
+[![CI](https://github.com/stn1slv/github-stats-cards/actions/workflows/ci.yml/badge.svg)](https://github.com/stn1slv/github-stats-cards/actions/workflows/ci.yml)
 
 ## 🚀 Get Started (GitHub Action)
 
@@ -160,6 +160,8 @@ uv run github-stats-card contrib -u your-username -o contrib.svg --types commits
 ```
 
 Pull requests are counted only when they are open or merged; closed unmerged pull requests are ignored. In a GitHub Actions workflow the same setting is the `contrib-types` input.
+
+The card covers your five most recent contribution years. For each year, GitHub returns at most 100 repositories per contribution type and at most 100 pull requests per repository, so a very active account can be undercounted.
 
 ---
 

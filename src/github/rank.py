@@ -58,7 +58,7 @@ def calculate_user_rank(
         reviews: Total pull request reviews
         stars: Total stars earned across all repositories
         followers: Total followers
-        all_commits: Whether commits include all-time or just current year
+        all_commits: Whether commits are all-time or only the last 12 months
 
     Returns:
         Dictionary with 'level' (S, A+, A, A-, B+, B, B-, C+, C) and 'percentile'
@@ -66,7 +66,7 @@ def calculate_user_rank(
     Examples:
         >>> result = calculate_user_rank(1000, 100, 50, 10, 200, 50)
         >>> result['level']
-        'A+'
+        'A'
         >>> 0 <= result['percentile'] <= 100
         True
     """
