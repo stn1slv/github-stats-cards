@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-19
+
+### Breaking
+
+These inputs used to be replaced by a default without a message. They now fail with a usage error before any API call, so a workflow or script passing one of them will start erroring instead of quietly producing a different card than intended.
+
+- `--theme` only accepts a known theme. A typo such as `drak` used to render the `default` theme.
+- Color options only accept 3, 4, 6 or 8 hex digits without `#`, and `--bg-color` also accepts a gradient. An invalid value, including `#ff0000` with the `#`, used to fall back to the theme color.
+- A gradient angle must be a whole number, for example `90,ff0000,00ff00` or `-45,ff0000,00ff00`. Other angles used to render as `0`.
+- `--hide` and `--show` on the `user-stats` card only accept known stat keys. An unknown key used to be dropped. The `top-langs` `--hide` option still takes any language name.
+- `--langs-count` must be between `1` and `20`. Out-of-range values used to be clamped.
+- `--line-height` must be at least `1`, `--border-radius` cannot be negative, and `--commits-year` cannot be earlier than 2008.
+
+### Fixed
+
+- The `user-stats` rank ring now shows the rank. It used to look full for every user, because the percentile never reached the ring.
+- The rank ring is no longer cut off at the bottom of a card that shows 3 or fewer stats.
+- `top-langs --exclude-repo owner/repo` now excludes the repository. Only the bare `repo` form used to work, because the full name was never fetched.
+- A `null` field in a partial GraphQL response no longer crashes the discussions count or the language fetch with "Unexpected error". When the discussions query returns errors, a warning is logged instead of the counts silently showing `0`.
+- With `GITHUB_API_URL=https://host/api/v3` and no `GITHUB_GRAPHQL_URL`, GraphQL requests now go to `https://host/api/graphql`, where GitHub Enterprise Server serves them. They used to go to `/api/v3/graphql`.
+- Contributor avatars are requested at 40px instead of full size, which makes the `contrib` SVG much smaller, and JPEG avatars are no longer labelled as PNG.
+- Long repository names on the `contrib` card are shortened with "…" instead of running under the rank badge.
+- Diagonal gradient angles render as diagonals. They used to snap to the nearest horizontal or vertical direction.
+- The `contrib` card now shows the PAT scope hint when the fetch fails, not only when it returns no repositories. A restricted token usually fails before any repository is counted.
+
+### Changed
+
+- The action installs its dependencies from `uv.lock`, with hash checking. A pinned tag used to install whatever `httpx` and `click` versions were newest on the day of the run.
+- The action passes the token to the CLI in the `GITHUB_TOKEN` environment variable instead of the `-t` argument, so it does not appear in the runner's process list.
+- The action's boolean inputs accept any letter case, so `True` and `TRUE` work. Anything other than lowercase `true` used to be read as `false`.
+
 ## [1.4.1] - 2026-09-26
 
 ### Fixed
