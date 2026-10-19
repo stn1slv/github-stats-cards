@@ -1,7 +1,22 @@
 """Tests for environment variable API URL configuration."""
 
+import importlib
 import os
+from collections.abc import Iterator
 from unittest import mock
+
+import pytest
+
+from src.core import constants
+from src.github import fetcher
+
+
+@pytest.fixture(autouse=True)
+def _restore_url_constants() -> Iterator[None]:
+    """Reload the modules under the real environment, so no patched URL leaks into later tests."""
+    yield
+    importlib.reload(constants)
+    importlib.reload(fetcher)
 
 
 def test_default_api_urls():

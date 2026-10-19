@@ -80,8 +80,9 @@ python_version = "3.13"
 strict = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# src is collected for its doctests, which went stale while nothing ran them
+testpaths = ["tests", "src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=src --cov-report=term-missing"
+addopts = "-v --doctest-modules --cov=src --cov-report=term-missing"
