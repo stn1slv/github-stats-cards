@@ -216,8 +216,11 @@ def test_action_yml_installs_from_the_action_path_and_never_self_checks_out():
     """
     action = ACTION_YML.read_text()
 
-    # The action must install from the path the runner resolved
-    assert 'uv pip install --system -e "$GITHUB_ACTION_PATH"' in action
+    # The action must install from the path the runner resolved, with the
+    # dependencies pinned by the committed lockfile rather than re-resolved
+    assert 'uv export --project "$GITHUB_ACTION_PATH" --frozen' in action
+    assert 'uv pip install --system -r "$RUNNER_TEMP/github-stats-card-requirements.txt"' in action
+    assert 'uv pip install --system --no-deps "$GITHUB_ACTION_PATH"' in action
 
     # And must not check out its own repository under any spelling
     executable = [ln for ln in action.splitlines() if not ln.strip().startswith("#")]
@@ -562,3 +565,24 @@ def test_contrib_command_fetch_error_gives_the_token_scope_hint(token: str, mess
     assert result.exit_code == 1
     assert f"❌ Error fetching data: {message}" in result.stderr
     assert ("read:user" in result.stderr) is expect_hint
+
+
+def test_action_yml_passes_the_token_through_the_environment_only():
+    """An argv token is visible to every process that can list the runner's commands."""
+    action = ACTION_YML.read_text()
+
+    assert "GITHUB_TOKEN: ${{ inputs.token }}" in action
+    assert '"$TOKEN"' not in action
+    assert not re.search(r"ARGS=\([^)]*-t\b", action)
+    # The CLI must still be able to pick the token up from that variable
+    for command in ("user-stats", "top-langs", "contrib"):
+        token = next(p for p in cli.commands[command].params if p.name == "token")
+        assert token.envvar == "GITHUB_TOKEN"
+
+
+def test_action_yml_reads_boolean_inputs_case_insensitively():
+    """'True' used to be read as false, because only the exact string 'true' matched."""
+    action = ACTION_YML.read_text()
+
+    assert not re.search(r'\[ "\$[A-Z_]+" = "true" \]', action)
+    assert len(re.findall(r'is_true "\$[A-Z_]+" &&', action)) == 7

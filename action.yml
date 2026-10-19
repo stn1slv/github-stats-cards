@@ -178,7 +178,16 @@ runs:
       # action, so v1.2.0 checked out `actions/checkout@v4` into the install
       # directory and produced no card at all. GITHUB_ACTION_PATH has no such
       # ambiguity because the runner resolved the pin before the action started.
-      run: uv pip install --system -e "$GITHUB_ACTION_PATH"
+      #
+      # Dependencies come from the committed uv.lock, hash-checked, so a pinned
+      # tag also pins httpx, click and everything beneath them. The package is
+      # then installed with --no-deps, so the open ranges in pyproject.toml are
+      # never re-resolved against whatever is newest on PyPI that day.
+      run: |
+        uv export --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project \
+          --output-file "$RUNNER_TEMP/github-stats-card-requirements.txt"
+        uv pip install --system -r "$RUNNER_TEMP/github-stats-card-requirements.txt"
+        uv pip install --system --no-deps "$GITHUB_ACTION_PATH"
     
     - name: Generate card
       id: generate
@@ -189,7 +198,9 @@ runs:
         # can inject shell syntax, whatever a caller wires it to.
         CARD_TYPE: ${{ inputs.card-type }}
         USERNAME: ${{ inputs.username }}
-        TOKEN: ${{ inputs.token }}
+        # Read by the CLI's --token option. Passing it as an argument instead
+        # would expose it to every process that can list the runner's commands.
+        GITHUB_TOKEN: ${{ inputs.token }}
         OUTPUT: ${{ inputs.output }}
         THEME: ${{ inputs.theme }}
         HIDE_BORDER: ${{ inputs.hide-border }}
@@ -219,6 +230,10 @@ runs:
         # Arguments are collected in an array and passed straight to the CLI.
         # There is no command string and no eval, so quoting in a value is data,
         # never syntax.
+
+        # Boolean inputs are compared case-insensitively, so "True" or "TRUE"
+        # enables a flag instead of being read as false in silence.
+        is_true() { [ "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" = "true" ]; }
         if [ "$CARD_TYPE" = "user-stats" ] || [ "$CARD_TYPE" = "stats" ]; then
           SUBCOMMAND="user-stats"
         elif [ "$CARD_TYPE" = "top-langs" ]; then
@@ -233,20 +248,20 @@ runs:
         # Common options. Optional values are only appended when non-empty, so an
         # explicitly empty input falls back to the CLI's own default instead of
         # being passed through as "".
-        ARGS=("$SUBCOMMAND" -u "$USERNAME" -t "$TOKEN" -o "$OUTPUT")
+        ARGS=("$SUBCOMMAND" -u "$USERNAME" -o "$OUTPUT")
         [ -n "$THEME" ] && ARGS+=(--theme "$THEME")
 
         # Flags
-        [ "$HIDE_BORDER" = "true" ] && ARGS+=(--hide-border)
-        [ "$HIDE_TITLE" = "true" ] && ARGS+=(--hide-title)
-        [ "$DISABLE_ANIMATIONS" = "true" ] && ARGS+=(--disable-animations)
+        is_true "$HIDE_BORDER" && ARGS+=(--hide-border)
+        is_true "$HIDE_TITLE" && ARGS+=(--hide-title)
+        is_true "$DISABLE_ANIMATIONS" && ARGS+=(--disable-animations)
 
         # Stats-specific options
         if [ "$CARD_TYPE" = "user-stats" ] || [ "$CARD_TYPE" = "stats" ]; then
-          [ "$SHOW_ICONS" = "true" ] && ARGS+=(--show-icons)
-          [ "$HIDE_RANK" = "true" ] && ARGS+=(--hide-rank)
+          is_true "$SHOW_ICONS" && ARGS+=(--show-icons)
+          is_true "$HIDE_RANK" && ARGS+=(--hide-rank)
           [ -n "$RANK_ICON" ] && ARGS+=(--rank-icon "$RANK_ICON")
-          [ "$INCLUDE_ALL_COMMITS" = "true" ] && ARGS+=(--include-all-commits)
+          is_true "$INCLUDE_ALL_COMMITS" && ARGS+=(--include-all-commits)
           [ -n "$SHOW" ] && ARGS+=(--show "$SHOW")
           [ -n "$HIDE" ] && ARGS+=(--hide "$HIDE")
         fi
@@ -255,7 +270,7 @@ runs:
         if [ "$CARD_TYPE" = "top-langs" ]; then
           [ -n "$LAYOUT" ] && ARGS+=(--layout "$LAYOUT")
           [ -n "$LANGS_COUNT" ] && ARGS+=(--langs-count "$LANGS_COUNT")
-          [ "$HIDE_PROGRESS" = "true" ] && ARGS+=(--hide-progress)
+          is_true "$HIDE_PROGRESS" && ARGS+=(--hide-progress)
           [ -n "$WEIGHTING" ] && ARGS+=(--weighting "$WEIGHTING")
           [ -n "$EXCLUDE_REPO" ] && ARGS+=(--exclude-repo "$EXCLUDE_REPO")
           [ -n "$HIDE" ] && ARGS+=(--hide "$HIDE")
