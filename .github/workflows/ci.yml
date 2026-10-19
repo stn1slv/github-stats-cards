@@ -46,3 +46,28 @@ jobs:
 
       - name: Test
         run: make test
+
+  action:
+    # Runs the composite action the way a consumer does, so the install step
+    # (lockfile export, --no-deps install) and the argument wiring are tested
+    # end to end. The unit tests only read action.yml as text.
+    name: Run the action
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Generate a card with the action
+        uses: ./
+        with:
+          card-type: top-langs
+          username: ${{ github.repository_owner }}
+          # The default token can read public repositories, which is all the
+          # top-langs card needs. The other cards need a PAT with read:user.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          output: card.svg
+          hide-border: 'True'
+
+      - name: Check the card
+        run: grep -q '<svg' card.svg
